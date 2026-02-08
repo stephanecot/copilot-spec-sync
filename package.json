@@ -1,0 +1,213 @@
+{
+  "name": "copilot-spec-sync",
+  "displayName": "Copilot Spec Sync",
+  "description": "Generate documentation and compare code against Word specifications using GitHub Copilot",
+  "version": "0.1.0",
+  "publisher": "spec-sync",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:specSync.dashboardView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "copilot-spec-sync.specsync",
+        "name": "specsync",
+        "fullName": "Copilot Spec Sync",
+        "description": "Generate documentation and compare your code with your specifications",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "doc",
+            "description": "Generate project documentation"
+          },
+          {
+            "name": "upload",
+            "description": "Upload a Word specification"
+          },
+          {
+            "name": "compare",
+            "description": "Compare code with uploaded specification"
+          },
+          {
+            "name": "gaps",
+            "description": "List gaps between code and specification"
+          },
+          {
+            "name": "implement",
+            "description": "Propose implementation for a missing requirement"
+          },
+          {
+            "name": "history",
+            "description": "View comparison history"
+          },
+          {
+            "name": "status",
+            "description": "Quick compliance summary"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "specSync.uploadSpec",
+        "title": "Copilot Spec Sync: Upload Specification",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "specSync.generateDoc",
+        "title": "Copilot Spec Sync: Generate Documentation",
+        "icon": "$(book)"
+      },
+      {
+        "command": "specSync.compare",
+        "title": "Copilot Spec Sync: Compare Code vs Spec",
+        "icon": "$(search)"
+      },
+      {
+        "command": "specSync.showCompliance",
+        "title": "Copilot Spec Sync: Show Compliance Report",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "specSync.showGaps",
+        "title": "Copilot Spec Sync: Show Gaps",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "specSync.exportMarkdown",
+        "title": "Copilot Spec Sync: Export Documentation as Markdown"
+      },
+      {
+        "command": "specSync.exportDocx",
+        "title": "Copilot Spec Sync: Export Documentation as Word"
+      },
+      {
+        "command": "specSync.exportReport",
+        "title": "Copilot Spec Sync: Export Compliance Report"
+      },
+      {
+        "command": "specSync.refreshTrees",
+        "title": "Copilot Spec Sync: Refresh Views",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "spec-sync",
+          "title": "Spec Sync",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "spec-sync": [
+        {
+          "type": "webview",
+          "id": "specSync.dashboardView",
+          "name": "Copilot Spec Sync"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Copilot Spec Sync",
+      "properties": {
+        "specSync.documentation.outputFormat": {
+          "type": "string",
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "docx",
+            "both"
+          ],
+          "description": "Output format for generated documentation"
+        },
+        "specSync.documentation.outputPath": {
+          "type": "string",
+          "default": "./docs",
+          "description": "Output folder for documentation"
+        },
+        "specSync.documentation.language": {
+          "type": "string",
+          "default": "fr",
+          "enum": [
+            "fr",
+            "en"
+          ],
+          "description": "Language for generated documentation"
+        },
+        "specSync.comparison.confidenceThreshold": {
+          "type": "number",
+          "default": 70,
+          "description": "Minimum confidence threshold for requirement matching (0-100)"
+        },
+        "specSync.comparison.includeGitInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Link comparisons to git commits"
+        },
+        "specSync.history.maxRecords": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of comparison history records"
+        },
+        "specSync.history.storagePath": {
+          "type": "string",
+          "default": ".vscode/spec-sync",
+          "description": "Storage folder for spec sync data"
+        },
+        "specSync.ui.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show compliance indicator in status bar"
+        },
+        "specSync.ui.showCodeDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show spec requirement annotations in editor"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "specSync.refreshTrees",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.config.mjs",
+    "compile": "npm run build",
+    "watch": "node esbuild.config.mjs --watch",
+    "package": "vsce package --allow-missing-repository",
+    "rebuild": "npm run build && echo '✅ Extension compilée - Rechargez VSCode (Cmd+Shift+P → Developer: Reload Window)'",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "mammoth": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.93.0",
+    "@vscode/prompt-tsx": "0.4.0-alpha.6",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}
