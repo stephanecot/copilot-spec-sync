@@ -1,5 +1,5 @@
 # RG1: Create cat
-L'application doit permettre de créer des chats
+The application must allow creating cats.
 
 # RG2: Upload spec
-L'application doit permettre d'uploader une spec au format markdown ou word (docx)
+The application must allow uploading a specification in Markdown or Word (docx) format.

@@ -105,12 +105,57 @@ copilot-spec-sync/
 # Compilation simple
 ./compile.sh
 
-# Compilation + rechargement
-npm run rebuild
+# Development Guide
 
-# Tout tester
-npm test && npm run build
+## Project setup
 
-# Package complet
-npm run build && npm run package
+1. Ensure you have Node.js v18+ and npm installed
+2. Install dependencies:
 ```
+npm install
+```
+
+## Useful scripts
+
+- `npm run compile`: build the extension with esbuild
+- `npm run watch`: build in watch mode
+- `npm test`: run unit tests (vitest)
+
+## Project structure
+
+Key folders and files:
+
+- `src/extension.ts`: extension entry point
+- `src/views`: webview UI and views
+- `src/spec-comparator`: spec parsing and analysis logic
+- `src/doc-generator`: document and diagram generators
+
+## Tests
+
+Run unit tests with:
+```
+npm test
+```
+
+## Debugging in VS Code
+
+1. Open the Run and Debug view
+2. Select the "Launch Extension" configuration
+3. Press F5 to open an Extension Development Host window
+
+## Contributing
+
+Fork the repository, create a branch, make changes, and open a Pull Request.
+
+## Style guide
+
+Follow TypeScript conventions and the project's coding style.
+
+## 🧪 Unit tests
+
+- Tests are located under `test/unit`
+- Use `vitest` to run tests
+
+## 📦 Packaging
+
+Use `vsce` to package the extension when needed.

@@ -1,99 +1,85 @@
-# Guide de Démarrage Rapide - Copilot Spec Sync
+# Quickstart Guide - Copilot Spec Sync
 
-## 🎯 Utilisation sans ligne de commande
+## 🎯 Using the extension (no CLI required)
 
-### Étape 1 : Ouvrir l'interface
+### Step 1: Open the interface
 
-1. Cliquez sur l'icône **Spec Sync** (📄) dans la barre d'activité gauche
-2. Vous verrez 3 panneaux :
-   - **Actions** (Dashboard avec boutons)
-   - **Specifications** (Liste des specs)
-   - **History** (Historique des comparaisons)
+1. Click the **Spec Sync** icon in the activity bar
+2. You will see the main panels:
+   - **Actions** (dashboard)
+   - **Specifications** (uploaded specs list)
+   - **History** (past comparisons)
 
-### Étape 2 : Uploader une spécification
+### Step 2: Upload a specification
 
-**Méthode 1 - Via le Dashboard :**
-- Cliquez sur **"📤 Uploader une spécification Word"** dans le panneau Actions
-- Sélectionnez votre fichier .docx
+**Method 1 - Dashboard:**
+- Click **"Upload a Specification"** in the Actions panel and select your .docx or .md file
 
-**Méthode 2 - Via la toolbar :**
-- Dans le panneau "Specifications", cliquez sur l'icône **➕** dans la toolbar en haut
+**Method 2 - Specifications toolbar:**
+- Click the **➕** upload icon in the Specifications panel
 
-**Méthode 3 - Via la palette de commandes :**
-- Appuyez sur `Cmd+Shift+P` (Mac) ou `Ctrl+Shift+P` (Windows/Linux)
-- Tapez "upload" et sélectionnez "Copilot Spec Sync: Upload Specification"
+**Method 3 - Command Palette:**
+- Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+- Type "upload" and select "Copilot Spec Sync: Upload Specification"
 
-### Étape 3 : Générer la documentation (optionnel)
+### Step 3: Generate documentation (optional)
 
-**Via le Dashboard :**
-- Cliquez sur **"📖 Générer la documentation"**
-- Choisissez le format (Markdown, Word, ou les deux)
+From the dashboard, click **"Generate Documentation"** and choose Markdown, Word, or both.
 
-### Étape 4 : Comparer avec le code
+### Step 4: Compare with code
 
-**Via le Dashboard :**
-- Cliquez sur **"🔍 Comparer avec le code"**
-- L'analyse démarre automatiquement
+From the dashboard, click **"Compare with Code"** to start analysis. You can also use the Compare icon in the Specifications panel.
 
-**Via la toolbar :**
-- Dans le panneau "Specifications", cliquez sur l'icône **🔍**
+> ⏱️ Analysis may take a few minutes depending on project size.
 
-> ⏱️ La comparaison peut prendre quelques minutes selon la taille du projet
+### Step 5: Review results
 
-### Étape 5 : Consulter les résultats
+#### Specifications panel:
+- Requirements grouped by status:
+  - ✅ Implemented
+  - ⚠️ Partial
+  - ❌ Missing
+  - 🔶 Divergent
 
-#### Dans le panneau Specifications :
-- Les exigences sont regroupées par statut :
-  - ✅ **Implémentées** - Code conforme
-  - ⚠️ **Partielles** - Partiellement implémenté
-  - ❌ **Manquantes** - Non implémenté
-  - 🔶 **Divergentes** - Code différent de la spec
+#### In code:
+- Files receive colored decorations; hover to see requirement details
 
-#### Dans le code :
-- Les fichiers sont automatiquement annotés avec des bordures colorées
-- Survolez une annotation pour voir les détails
+#### Dashboard:
+- Click **"Show Compliance"** for a detailed breakdown
 
-#### Via le Dashboard :
-- Cliquez sur **"📈 Afficher la conformité"** pour une vue détaillée
+### Step 6: Show critical gaps
 
-### Étape 6 : Voir les écarts critiques
+Use the Command Palette: `Cmd+Shift+P` → "Copilot Spec Sync: Show Gaps" to see only missing or divergent requirements.
 
-**Via la palette de commandes :**
-- `Cmd+Shift+P` → "Copilot Spec Sync: Show Gaps"
-- Affiche uniquement les exigences non implémentées ou divergentes
+### Step 7: Export results
 
-### Étape 7 : Exporter les résultats
+From the dashboard, click **"Export Report"** to generate Word or Markdown reports.
 
-**Via le Dashboard :**
-- Cliquez sur **"💾 Exporter le rapport"**
-- Le rapport est généré en Word ou Markdown selon vos préférences
+## 🔄 Follow-up workflow
 
-## 🔄 Workflow de suivi
+1. Update your code
+2. Run **Compare with Code** again
+3. Check **History** for evolution
+4. Status bar shows current compliance %
 
-1. Modifiez votre code
-2. Cliquez sur **"🔍 Comparer avec le code"** à nouveau
-3. Consultez le panneau **History** pour voir l'évolution
-4. La barre de statut en bas affiche le % de conformité actuel
+## 💡 Tips
 
-## 💡 Astuces
+- Use the Refresh button (🔄) in any view to reload content
+- Click the status bar to open the compliance view
+- Chat mode: use `@specsync` in Copilot chat for advanced actions
 
-- **Bouton Refresh (🔄)** dans chaque vue pour rafraîchir l'affichage
-- **Cliquez sur la barre de statut** en bas pour ouvrir la vue de conformité
-- **Mode Chat** : Tapez `@specsync` dans le chat Copilot pour des actions avancées
-- **Historique** : Comparez 2 versions en utilisant `@specsync /history compare`
+## ⚙️ Customization
 
-## ⚙️ Personnalisation
+In VS Code settings, search for "Spec Sync" to configure:
+- Default output format
+- Output folder
+- Generation language (FR/EN)
+- Enable/disable code annotations
+- Enable/disable status bar
 
-**Paramètres VSCode → Recherchez "Spec Sync" :**
-- Format de sortie par défaut
-- Dossier de destination
-- Langue de génération (FR/EN)
-- Activer/désactiver les annotations de code
-- Activer/désactiver la barre de statut
+## 🆘 Help
 
-## 🆘 Aide
-
-Si vous avez des questions :
-- Consultez le README.md complet
-- Utilisez `@specsync` dans le chat pour poser des questions
-- Ouvrez un ticket sur GitHub
+If you need assistance:
+- See the full README
+- Use `@specsync` in the chat
+- Open an issue on GitHub

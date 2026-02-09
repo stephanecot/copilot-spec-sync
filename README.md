@@ -1,36 +1,36 @@
 # Copilot Spec Sync
 
-Extension VSCode pour générer de la documentation et comparer votre code avec des spécifications Word, alimentée par GitHub Copilot.
+VS Code extension to generate documentation and compare your code against Word or Markdown specifications, powered by GitHub Copilot.
 
-## 🚀 Fonctionnalités
+## 🚀 Features
 
-### 1. Interface Graphique (Sans ligne de commande)
+### 1. Graphical Interface (no CLI required)
 
-L'extension offre une interface complète accessible depuis la barre latérale :
+The extension provides a full sidebar dashboard:
 
-#### **Dashboard Actions**
-Cliquez sur l'icône Spec Sync dans la barre d'activité pour accéder au dashboard avec tous les boutons :
-- **📖 Générer la documentation** - Génère automatiquement la doc de vos projets
-- **📤 Uploader une spécification Word** - Importez votre fichier .docx
-- **🔍 Comparer avec le code** - Analyse les écarts entre code et spec
-- **📈 Afficher la conformité** - Vue détaillée de la conformité
-- **💾 Exporter le rapport** - Exporte en Word ou Markdown
+#### Dashboard Actions
+Open the Spec Sync icon in the activity bar to access the dashboard with the following actions:
+- **📖 Generate Documentation** - Automatically generate project documentation
+- **📤 Upload a Specification** - Import a .docx or .md file
+- **🔍 Compare with Code** - Detect gaps between code and the specification
+- **📈 Show Compliance** - Detailed compliance overview
+- **💾 Export Report** - Export results as Word or Markdown
 
-#### **Vue Spécifications**
-Affiche toutes les specs uploadées avec :
-- Boutons dans la toolbar : ➕ Upload, 🔍 Compare, 🔄 Refresh
-- Arborescence des exigences par statut
-- Icônes colorées par état (✅ Implémenté, ⚠️ Partiel, ❌ Manquant)
+#### Specifications View
+Shows uploaded specs with:
+- Toolbar buttons: ➕ Upload, 🔍 Compare, 🔄 Refresh
+- Requirements tree grouped by status
+- Colored icons for status (✅ Implemented, ⚠️ Partial, ❌ Missing)
 
-#### **Vue Historique**
-Historique de toutes les comparaisons avec date et pourcentage de conformité
+#### History View
+Shows past comparisons with date and compliance percentage
 
-#### **Barre de statut**
-Indicateur de conformité en bas à droite (ex: "Spec Sync: 75%")
+#### Status Bar
+Compliance indicator in the bottom-right (e.g. "Spec Sync: 75%")
 
-### 2. Commandes Palette (Cmd+Shift+P)
+### 2. Command Palette (Cmd/Ctrl+Shift+P)
 
-Toutes les commandes sont disponibles dans la palette :
+All extension commands are available in the Command Palette:
 - `Copilot Spec Sync: Upload Specification`
 - `Copilot Spec Sync: Generate Documentation`
 - `Copilot Spec Sync: Compare Code vs Spec`
@@ -40,59 +40,58 @@ Toutes les commandes sont disponibles dans la palette :
 - `Copilot Spec Sync: Export Documentation as Word`
 - `Copilot Spec Sync: Export Compliance Report`
 
-### 3. Chat Participant (Mode Avancé)
+### 3. Chat Participant (Advanced)
 
-Pour les utilisateurs avancés, vous pouvez aussi utiliser le chat :
+Advanced users can also use the chat integration:
 
-Tapez `@specsync` dans le chat Copilot, puis :
-- `/doc` - Générer la documentation
-- `/upload` - Uploader une spec
-- `/compare` - Comparer code vs spec
-- `/gaps` - Lister les écarts
-- `/status` - Résumé de conformité
-- `/history` - Voir l'historique
-- `/implement REQ-XXX` - Proposer l'implémentation d'une exigence
+Type `@specsync` in the Copilot chat, then:
+- `/doc` - Generate documentation
+- `/upload` - Upload a spec
+- `/compare` - Compare code vs spec
+- `/gaps` - List gaps
+- `/status` - Compliance summary
+- `/history` - Show history
+- `/implement REQ-XXX` - Propose implementation for a requirement
 
-## 📋 Workflow Typique
+## 📋 Typical Workflow
 
-1. **Cliquez sur l'icône Spec Sync** dans la barre latérale
-2. **Cliquez sur "Uploader une spécification Word"** dans le dashboard
-3. Sélectionnez votre fichier .docx
-4. **Cliquez sur "Comparer avec le code"**
-5. Consultez les résultats dans la vue Spécifications
-6. **Cliquez sur "Afficher la conformité"** pour voir les détails
-7. Utilisez **"Exporter le rapport"** pour sauvegarder les résultats
+1. Click the Spec Sync icon in the sidebar
+2. Upload a specification (Word or Markdown)
+3. Click "Compare with Code"
+4. Review results in the Specifications view
+5. Click "Show Compliance" for a detailed breakdown
+6. Export the report if needed
 
-## 🎨 Annotations dans le Code
+## 🎨 Code Annotations
 
-Les fichiers de code sont automatiquement annotés avec :
-- 🟢 Bordure verte - Exigence implémentée
-- 🟠 Bordure orange - Exigence partiellement implémentée
-- 🔴 Bordure rouge - Exigence non implémentée ou divergente
+Source files are automatically decorated with:
+- 🟢 Green border — Requirement implemented
+- 🟠 Orange border — Requirement partially implemented
+- 🔴 Red border — Requirement missing or divergent
 
-Survolez les annotations pour voir les détails de l'exigence.
+Hover decorations to see requirement details.
 
 ## ⚙️ Configuration
 
-Ouvrez les paramètres VSCode et recherchez "Spec Sync" :
+Open VS Code settings and search for "Spec Sync":
 
-- **Format de sortie** : Markdown, DOCX, ou les deux
-- **Dossier de sortie** : Emplacement des docs générées (défaut: `./docs`)
-- **Langue** : Français ou Anglais
-- **Seuil de confiance** : Niveau de certitude minimum (0-100)
-- **Afficher la barre de statut** : Activer/désactiver l'indicateur
-- **Afficher les annotations** : Activer/désactiver les décorations de code
+- **Output format**: Markdown, DOCX, or both
+- **Output folder**: Location for generated docs (default: `./docs`)
+- **Language**: French or English
+- **Confidence threshold**: Minimum confidence % (0-100)
+- **Show status bar**: Enable/disable status indicator
+- **Show annotations**: Enable/disable code decorations
 
-## 🔧 Développement
+## 🔧 Development
 
 ```bash
-# Installation
+# Install dependencies
 npm install
 
 # Build
 npm run build
 
-# Tests
+# Run tests
 npm test
 
 # Watch mode
@@ -102,24 +101,24 @@ npm run watch
 npx vsce package
 ```
 
-## 📝 Format des Spécifications
+## 📝 Specification Format
 
-L'extension détecte automatiquement les exigences dans vos fichiers Word en cherchant :
+The extension detects requirements in documents using keyword patterns:
 
-**Mots-clés français** : doit, devra, devrait, doit être, est requis, est nécessaire, il faut
-**Mots-clés anglais** : must, shall, should, required, mandatory, need to
+**French keywords**: doit, devra, devrait, doit être, est requis, est nécessaire, il faut
+**English keywords**: must, shall, should, required, mandatory, need to
 
-**Priorités MoSCoW** :
-- Must have / Obligatoire
-- Should have / Souhaitable
-- Could have / Optionnel
-- Won't have / Exclu
+**MoSCoW priorities**:
+- Must have
+- Should have
+- Could have
+- Won't have
 
-## 🐛 Problèmes Connus
+## 🐛 Known Issues
 
-- Le chat participant nécessite GitHub Copilot actif
-- Les LM Tools nécessitent VSCode 1.93+
+- Chat participant requires GitHub Copilot to be enabled
+- LM Tools require a recent VS Code with Copilot support
 
-## 📄 Licence
+## 📄 License
 
 MIT
