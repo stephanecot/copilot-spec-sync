@@ -136,7 +136,7 @@ describe('mermaidGenerator', () => {
 
       const diagram = generateComplianceDiagram(comparison);
       expect(diagram).toContain('pie');
-      expect(diagram).toContain('Implémentées');
+      expect(diagram).toContain('Implemented');
       expect(diagram).toContain('5');
     });
   });

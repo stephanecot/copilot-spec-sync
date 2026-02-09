@@ -6,6 +6,7 @@ import { readDocx } from '../spec-comparator/docxReader.js';
 import { readMarkdown } from '../spec-comparator/markdownReader.js';
 import { parseSpec } from '../spec-comparator/specParser.js';
 import { getWorkspaceProjects, generateId, getGitCommitHash } from '../utils/fileUtils.js';
+import { ProjectInfo } from '../types.js';
 import { analyzeProject } from '../doc-generator/projectAnalyzer.js';
 import { exportAsMarkdown, exportAsDocx } from '../doc-generator/docBuilder.js';
 import { findRelevantCode } from '../spec-comparator/codeMapper.js';
@@ -23,7 +24,7 @@ export async function interactiveUploadSpec(
   const fileUris = await vscode.window.showOpenDialog({
     canSelectMany: false,
     filters: { 'Specifications': ['docx', 'md'] },
-    openLabel: 'Sélectionner la spécification',
+    openLabel: 'Select the specification',
   });
 
   if (!fileUris || fileUris.length === 0) {
@@ -35,12 +36,12 @@ export async function interactiveUploadSpec(
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Upload de la spécification',
+      title: 'Uploading specification',
       cancellable: false,
     },
     async (progress) => {
       try {
-        progress.report({ message: 'Lecture du fichier...' });
+        progress.report({ message: 'Reading file...' });
 
         // Read file based on extension
         const ext = path.extname(filePath).toLowerCase();
@@ -48,7 +49,7 @@ export async function interactiveUploadSpec(
           ? await readMarkdown(filePath)
           : await readDocx(filePath);
 
-        progress.report({ message: 'Analyse du contenu...' });
+        progress.report({ message: 'Parsing content...' });
 
         // Generate spec ID
         const specId = generateId();
@@ -68,10 +69,10 @@ export async function interactiveUploadSpec(
 
         // Success
         vscode.window.showInformationMessage(
-          `Spécification "${spec.title}" uploadée avec succès (${spec.requirementCount} exigences)`,
+          `Specification "${spec.title}" uploaded successfully (${spec.requirementCount} requirements)`,
         );
       } catch (error) {
-        vscode.window.showErrorMessage(`Erreur lors de l'upload: ${error}`);
+        vscode.window.showErrorMessage(`Error uploading: ${error}`);
       }
     },
   );
@@ -87,11 +88,11 @@ export async function interactiveCompare(
 
   if (specs.length === 0) {
     const upload = await vscode.window.showInformationMessage(
-      'Aucune spécification trouvée. Voulez-vous en uploader une ?',
-      'Oui',
-      'Non',
+      'No specification found. Would you like to upload one?',
+      'Yes',
+      'No',
     );
-    if (upload === 'Oui') {
+    if (upload === 'Yes') {
       await interactiveUploadSpec(context, storage);
     }
     return undefined;
@@ -102,7 +103,7 @@ export async function interactiveCompare(
   if (specId) {
     selectedSpec = specs.find(s => s.id === specId);
     if (!selectedSpec) {
-      vscode.window.showErrorMessage('Spécification introuvable');
+      vscode.window.showErrorMessage('Specification not found');
       return undefined;
     }
   } else if (specs.length === 1) {
@@ -115,7 +116,7 @@ export async function interactiveCompare(
     }));
 
     const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Sélectionnez une spécification à comparer',
+      placeHolder: 'Select a specification to compare',
     });
 
     if (!picked) {
@@ -124,56 +125,91 @@ export async function interactiveCompare(
     selectedSpec = picked.spec;
   }
 
+  // ── Sub-project selection ──
+  const allProjects = await getWorkspaceProjects();
+  if (allProjects.length === 0) {
+    vscode.window.showErrorMessage('No projects detected in the workspace');
+    return undefined;
+  }
+
+  let selectedProjects: ProjectInfo[];
+  if (allProjects.length === 1) {
+    selectedProjects = allProjects;
+  } else {
+    const projectItems = allProjects.map(p => ({
+      label: p.name,
+      description: `${p.type} · ${p.language}`,
+      detail: p.path,
+      picked: false,
+      project: p,
+    }));
+
+    const pickedProjects = await vscode.window.showQuickPick(projectItems, {
+      placeHolder: 'Select the sub-project(s) to analyze',
+      canPickMany: true,
+    });
+
+    if (!pickedProjects || pickedProjects.length === 0) {
+      return undefined;
+    }
+    selectedProjects = pickedProjects.map(p => p.project);
+  }
+
+  // Save selected projects in workspace state for reuse in implement
+  await context.workspaceState.update('specSync.selectedProjects', selectedProjects);
+
   let resultComparison: any | undefined;
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `Comparaison avec ${selectedSpec.title}`,
+      title: `Comparison with ${selectedSpec.title}`,
       cancellable: true,
     },
     async (progress, token) => {
       try {
-        progress.report({ message: 'Chargement de la spécification...' });
+        progress.report({ message: 'Loading specification...' });
 
         const spec = await storage.getSpec(selectedSpec.id);
         if (!spec) {
-          throw new Error('Spécification introuvable');
+          throw new Error('Specification not found');
         }
 
-        progress.report({ message: 'Détection des projets...' });
-        const projects = await getWorkspaceProjects();
+        progress.report({ message: 'Detecting projects...' });
+        const projects = selectedProjects;
 
         if (projects.length === 0) {
-          throw new Error('Aucun projet détecté dans le workspace');
+          throw new Error('No projects detected in the workspace');
         }
 
         // Get language model – try user-selected model first, then any available
         let model: vscode.LanguageModelChat | undefined;
         const allModels = await vscode.lm.selectChatModels();
-        if (preferredModelId) {
-          model = allModels.find(m => m.id === preferredModelId);
+        if (allModels && Array.isArray(allModels)) {
+          if (preferredModelId) {
+            model = allModels.find(m => m.id === preferredModelId);
+          }
+          if (!model && allModels.length > 0) {
+            model = allModels[0];
+          }
         }
         if (!model) {
-          model = allModels[0];
-        }
-        if (!model) {
-          throw new Error('Aucun modèle de langage disponible. GitHub Copilot est-il activé ?');
+          throw new Error('No language model available. Is GitHub Copilot enabled?');
         }
 
         // Flatten requirements
         const allRequirements = flattenRequirements(spec);
-        progress.report({ message: `Analyse de ${allRequirements.length} exigences...` });
+        progress.report({ message: `Analyzing ${allRequirements.length} requirements...` });
 
         const results = [];
         for (let i = 0; i < allRequirements.length; i++) {
           if (token.isCancellationRequested) {
-            throw new Error('Comparaison annulée');
+            throw new Error('Comparison cancelled');
           }
 
           const req = allRequirements[i];
           progress.report({
-            message: `Exigence ${i + 1}/${allRequirements.length}: ${req.id}`,
+            message: `Requirement ${i + 1}/${allRequirements.length}: ${req.id}`,
             increment: (100 / allRequirements.length),
           });
 
@@ -210,13 +246,13 @@ export async function interactiveCompare(
         const percentage = Math.round((implemented / total) * 100);
 
         vscode.window.showInformationMessage(
-          `Comparaison terminee: ${percentage}% conforme (${implemented}/${total} exigences)`,
+          `Comparison complete: ${percentage}% compliant (${implemented}/${total} requirements)`,
         );
       } catch (error) {
-        if (error instanceof Error && error.message === 'Comparaison annulée') {
-          vscode.window.showWarningMessage('Comparaison annulée');
+        if (error instanceof Error && error.message === 'Comparison cancelled') {
+          vscode.window.showWarningMessage('Comparison cancelled');
         } else {
-          vscode.window.showErrorMessage(`Erreur lors de la comparaison: ${error}`);
+          vscode.window.showErrorMessage(`Error during comparison: ${error}`);
         }
       }
     },
@@ -230,7 +266,7 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
 
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
-    vscode.window.showErrorMessage('Aucun workspace ouvert');
+    vscode.window.showErrorMessage('No workspace open');
     return;
   }
 
@@ -238,9 +274,9 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
     [
       { label: 'Markdown', description: 'Format .md', value: 'md' },
       { label: 'Word (DOCX)', description: 'Format .docx', value: 'docx' },
-      { label: 'Les deux', description: 'Markdown et Word', value: 'both' },
+      { label: 'Both', description: 'Markdown and Word', value: 'both' },
     ],
-    { placeHolder: 'Choisissez le format de sortie' },
+    { placeHolder: 'Choose the output format' },
   );
 
   if (!format) {
@@ -250,16 +286,16 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Génération de la documentation',
+      title: 'Generating documentation',
       cancellable: false,
     },
     async (progress) => {
       try {
-        progress.report({ message: 'Détection des projets...' });
+        progress.report({ message: 'Detecting projects...' });
 
         const projects = await getWorkspaceProjects();
         if (projects.length === 0) {
-          throw new Error('Aucun projet détecté');
+          throw new Error('No projects detected');
         }
 
         const outputDir = vscode.workspace.getConfiguration('specSync.documentation').get<string>('outputPath', './docs');
@@ -269,7 +305,7 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
         await fs.mkdir(outputPath, { recursive: true });
 
         for (const project of projects) {
-          progress.report({ message: `Analyse de ${project.name}...` });
+          progress.report({ message: `Analyzing ${project.name}...` });
 
           const analysis = await analyzeProject(project.path);
 
@@ -278,7 +314,7 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
             projectInfo: analysis.projectInfo,
             sections: [
               {
-                title: 'Vue d\'ensemble',
+                title: 'Overview',
                 key: 'overview',
                 content: `# ${project.name}\n\nType: ${project.type}\nLanguage: ${project.language}`,
                 priority: 1,
@@ -287,7 +323,7 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
             generatedAt: new Date().toISOString(),
           };
 
-          progress.report({ message: `Export de ${project.name}...` });
+          progress.report({ message: `Exporting ${project.name}...` });
 
           // Export based on format
           if (format.value === 'md' || format.value === 'both') {
@@ -302,15 +338,15 @@ export async function interactiveGenerateDoc(context: vscode.ExtensionContext): 
         }
 
         const action = await vscode.window.showInformationMessage(
-          `Documentation générée dans ${outputDir}/`,
-          'Ouvrir le dossier',
+          `Documentation generated in ${outputDir}/`,
+          'Open Folder',
         );
 
-        if (action === 'Ouvrir le dossier') {
+        if (action === 'Open Folder') {
           await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
         }
       } catch (error) {
-        vscode.window.showErrorMessage(`Erreur lors de la génération: ${error}`);
+        vscode.window.showErrorMessage(`Error during generation: ${error}`);
       }
     },
   );
@@ -322,7 +358,7 @@ export async function interactiveShowGaps(
 ): Promise<void> {
   const comparison = await storage.getLatestComparisonForAnySpec();
   if (!comparison) {
-    vscode.window.showInformationMessage('Aucune comparaison disponible. Lancez une comparaison d\'abord.');
+    vscode.window.showInformationMessage('No comparison available. Run a comparison first.');
     return;
   }
 
@@ -331,25 +367,25 @@ export async function interactiveShowGaps(
   );
 
   if (gaps.length === 0) {
-    vscode.window.showInformationMessage('Aucun écart trouvé ! Tous les requis sont implémentés.');
+    vscode.window.showInformationMessage('No gaps found! All requirements are implemented.');
     return;
   }
 
   // Create webview panel
   const panel = vscode.window.createWebviewPanel(
     'specSyncGaps',
-    'Écarts de conformité',
+    'Compliance Gaps',
     vscode.ViewColumn.One,
     { enableScripts: false },
   );
 
   let html = '<!DOCTYPE html><html><head><style>body{padding:20px;font-family:var(--vscode-font-family);color:var(--vscode-foreground);}h2{color:var(--vscode-foreground);}table{width:100%;border-collapse:collapse;}th,td{padding:8px;text-align:left;border-bottom:1px solid var(--vscode-panel-border);}th{background:var(--vscode-editor-background);font-weight:600;}.missing{color:#f48771;}.divergent{color:#cca700;}</style></head><body>';
-  html += `<h2>Écarts de conformité (${gaps.length} exigences)</h2>`;
-  html += '<table><tr><th>ID</th><th>Statut</th><th>Exigence</th><th>Confiance</th></tr>';
+  html += `<h2>Compliance Gaps (${gaps.length} requirements)</h2>`;
+  html += '<table><tr><th>ID</th><th>Status</th><th>Requirement</th><th>Confidence</th></tr>';
 
   for (const gap of gaps) {
     const statusClass = gap.status === 'not-implemented' ? 'missing' : 'divergent';
-    const statusText = gap.status === 'not-implemented' ? 'Non implémenté' : 'Divergent';
+    const statusText = gap.status === 'not-implemented' ? 'Not Implemented' : 'Divergent';
     html += `<tr><td><strong>${escapeHtml(gap.requirementId)}</strong></td><td class="${statusClass}">${statusText}</td><td>${escapeHtml(gap.requirementText.substring(0, 80))}...</td><td>${gap.confidence}%</td></tr>`;
   }
 
@@ -363,16 +399,17 @@ export async function interactiveShowStatus(
 ): Promise<void> {
   const comparison = await storage.getLatestComparisonForAnySpec();
   if (!comparison) {
-    vscode.window.showInformationMessage('Aucune comparaison disponible.');
+    vscode.window.showInformationMessage('No comparison available.');
     return;
   }
 
   const s = comparison.summary;
   const percentage = Math.round((s.implemented / s.total) * 100);
+  const level = getComplianceLevelLabel(percentage);
 
   const panel = vscode.window.createWebviewPanel(
     'specSyncStatus',
-    'État de conformité',
+    'Compliance Status',
     vscode.ViewColumn.One,
     { enableScripts: false },
   );
@@ -408,37 +445,96 @@ export async function interactiveShowStatus(
     .partial { color: #cca700; }
     .missing { color: #f48771; }
     .divergent { color: #ff9966; }
+    .progress-wrap {
+      width: 100%;
+      height: 12px;
+      background: rgba(128,128,128,.2);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 6px;
+      background: ${percentage >= 80 ? '#89d185' : percentage >= 60 ? '#cca700' : '#f48771'};
+    }
+    .level-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 16px;
+      background: ${percentage >= 80 ? 'rgba(137,209,133,.2)' : percentage >= 60 ? 'rgba(204,167,0,.2)' : 'rgba(244,135,113,.2)'};
+      color: ${percentage >= 80 ? '#89d185' : percentage >= 60 ? '#cca700' : '#f48771'};
+    }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--vscode-panel-border); font-size: 12px; }
+    th { font-weight: 600; }
+    .current-row { background: rgba(137,209,133,.1); font-weight: 600; }
   </style>
 </head>
 <body>
-  <h2>État de conformité: ${percentage}%</h2>
+  <h2>Compliance Status: ${percentage}%</h2>
+  <div class="level-badge">${level}</div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:${percentage}%"></div></div>
 
   <div class="stat-box">
     <div class="stat-value">${s.total}</div>
-    <div class="stat-label">Total exigences</div>
+    <div class="stat-label">Total requirements</div>
   </div>
 
   <div class="stat-box implemented">
     <div class="stat-value">${s.implemented}</div>
-    <div class="stat-label">Implémentées</div>
+    <div class="stat-label">Implemented</div>
   </div>
 
   <div class="stat-box partial">
     <div class="stat-value">${s.partial}</div>
-    <div class="stat-label">Partielles</div>
+    <div class="stat-label">Partial</div>
   </div>
 
   <div class="stat-box missing">
     <div class="stat-value">${s.notImplemented}</div>
-    <div class="stat-label">Manquantes</div>
+    <div class="stat-label">Missing</div>
   </div>
 
   <div class="stat-box divergent">
     <div class="stat-value">${s.divergent}</div>
-    <div class="stat-label">Divergentes</div>
+    <div class="stat-label">Divergent</div>
   </div>
+
+  <h3 style="margin-top:24px">Compliance Scale</h3>
+  <table>
+    <tr><th>Threshold</th><th>Level</th></tr>
+    <tr${percentage === 100 ? ' class="current-row"' : ''}><td>100%</td><td>Perfect</td></tr>
+    <tr${percentage >= 95 && percentage < 100 ? ' class="current-row"' : ''}><td>95-99%</td><td>Excellent</td></tr>
+    <tr${percentage >= 90 && percentage < 95 ? ' class="current-row"' : ''}><td>90-94%</td><td>Very Good</td></tr>
+    <tr${percentage >= 80 && percentage < 90 ? ' class="current-row"' : ''}><td>80-89%</td><td>Good</td></tr>
+    <tr${percentage >= 70 && percentage < 80 ? ' class="current-row"' : ''}><td>70-79%</td><td>Fair</td></tr>
+    <tr${percentage >= 60 && percentage < 70 ? ' class="current-row"' : ''}><td>60-69%</td><td>Average</td></tr>
+    <tr${percentage >= 50 && percentage < 60 ? ' class="current-row"' : ''}><td>50-59%</td><td>Insufficient</td></tr>
+    <tr${percentage >= 40 && percentage < 50 ? ' class="current-row"' : ''}><td>40-49%</td><td>Weak</td></tr>
+    <tr${percentage >= 25 && percentage < 40 ? ' class="current-row"' : ''}><td>25-39%</td><td>Very Weak</td></tr>
+    <tr${percentage >= 10 && percentage < 25 ? ' class="current-row"' : ''}><td>10-24%</td><td>Critical</td></tr>
+    <tr${percentage < 10 ? ' class="current-row"' : ''}><td>0-9%</td><td>Not Started</td></tr>
+  </table>
 </body>
 </html>`;
+}
+
+function getComplianceLevelLabel(pct: number): string {
+  if (pct === 100) { return 'Perfect'; }
+  if (pct >= 95) { return 'Excellent'; }
+  if (pct >= 90) { return 'Very Good'; }
+  if (pct >= 80) { return 'Good'; }
+  if (pct >= 70) { return 'Fair'; }
+  if (pct >= 60) { return 'Average'; }
+  if (pct >= 50) { return 'Insufficient'; }
+  if (pct >= 40) { return 'Weak'; }
+  if (pct >= 25) { return 'Very Weak'; }
+  if (pct >= 10) { return 'Critical'; }
+  return 'Not Started';
 }
 
 export async function interactiveImplementRequirement(
@@ -452,26 +548,41 @@ export async function interactiveImplementRequirement(
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `Implementation de l'exigence ${requirementId}`,
+      title: `Implementing requirement ${requirementId}`,
       cancellable: true,
     },
     async (progress, token) => {
       try {
-        progress.report({ message: 'Selection du modele...' });
+        progress.report({ message: 'Selecting model...' });
 
         let model: vscode.LanguageModelChat | undefined;
         const allModels = await vscode.lm.selectChatModels();
-        if (preferredModelId) {
-          model = allModels.find(m => m.id === preferredModelId);
+        if (allModels && Array.isArray(allModels)) {
+          if (preferredModelId) {
+            model = allModels.find(m => m.id === preferredModelId);
+          }
+          if (!model && allModels.length > 0) {
+            model = allModels[0];
+          }
         }
         if (!model) {
-          model = allModels[0];
-        }
-        if (!model) {
-          throw new Error('Aucun modele de langage disponible.');
+          throw new Error('No language model available.');
         }
 
-        progress.report({ message: 'Generation de la proposition...' });
+        progress.report({ message: 'Generating proposal...' });
+
+        // Retrieve selected projects for context
+        const selectedProjects: ProjectInfo[] | undefined = context.workspaceState.get('specSync.selectedProjects');
+        const projectContext = selectedProjects && selectedProjects.length > 0
+          ? selectedProjects.map(p => `- ${p.name} (${p.type}, ${p.language}, path: ${p.path})`).join('\n')
+          : '(no project selected)';
+        const targetFolder = selectedProjects && selectedProjects.length > 0
+          ? selectedProjects[0].path
+          : '';
+        const techStack = selectedProjects && selectedProjects.length > 0
+          ? `Type: ${selectedProjects[0].type}, Language: ${selectedProjects[0].language}` +
+            (selectedProjects[0].dependencies ? `, Dependencies: ${Object.keys(selectedProjects[0].dependencies).slice(0, 15).join(', ')}` : '')
+          : '';
 
         // Build context from matched files
         let fileContext = '';
@@ -489,22 +600,31 @@ export async function interactiveImplementRequirement(
         }
 
         const prompt = [
-          vscode.LanguageModelChatMessage.User(`Tu es un developpeur expert. On te demande d'implementer l'exigence suivante dans le code existant.
+          vscode.LanguageModelChatMessage.User(`You are an expert developer. You are asked to implement the following requirement in existing code.
 
-EXIGENCE: [${requirementId}] ${requirementText}
+REQUIREMENT: [${requirementId}] ${requirementText}
 
-ACTIONS SUGGEREES:
-${suggestedActions.map(a => '- ' + a).join('\n') || '(aucune)'}
+TARGET PROJECT:
+${projectContext}
 
-CODE EXISTANT PERTINENT:
-${fileContext || '(aucun fichier associe)'}
+TECHNICAL CONSTRAINTS:
+${techStack}
+Project root folder: ${targetFolder}
+All created or modified files MUST be inside this folder.
+Follow the conventions, language, frameworks and patterns already used in the project.
 
-Genere le code necessaire pour implementer cette exigence. Indique clairement:
-1. Dans quel fichier ajouter/modifier le code
-2. Le code complet a ajouter ou modifier
-3. Une breve explication
+SUGGESTED ACTIONS:
+${suggestedActions.map(a => '- ' + a).join('\n') || '(none)'}
 
-Reponds en francais.`),
+RELEVANT EXISTING CODE:
+${fileContext || '(no associated files)'}
+
+Generate the code necessary to implement this requirement. Clearly indicate:
+1. In which file to add/modify the code (paths relative to the project folder)
+2. The complete code to add or modify
+3. A brief explanation
+
+Respond in English.`),
         ];
 
         const response = await model.sendRequest(prompt, {}, token);
@@ -517,7 +637,7 @@ Reponds en francais.`),
 
         // Show result in a new editor tab
         const doc = await vscode.workspace.openTextDocument({
-          content: `# Implementation: ${requirementId}\n\n## Exigence\n${requirementText}\n\n## Proposition\n\n${resultText}`,
+          content: `# Implementation: ${requirementId}\n\n## Requirement\n${requirementText}\n\n## Proposal\n\n${resultText}`,
           language: 'markdown',
         });
         await vscode.window.showTextDocument(doc, { preview: false });
@@ -526,7 +646,7 @@ Reponds en francais.`),
         if (token.isCancellationRequested) {
           return;
         }
-        vscode.window.showErrorMessage(`Erreur: ${error}`);
+        vscode.window.showErrorMessage(`Error: ${error}`);
       }
     },
   );

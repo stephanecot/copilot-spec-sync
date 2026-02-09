@@ -74,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (storage) {
         interactiveUploadSpec(context, storage);
       } else {
-        vscode.window.showErrorMessage('Aucun workspace ouvert');
+        vscode.window.showErrorMessage('No workspace open');
       }
     }),
     vscode.commands.registerCommand('specSync.generateDoc', () => {
@@ -84,21 +84,21 @@ export function activate(context: vscode.ExtensionContext) {
       if (storage) {
         interactiveCompare(context, storage);
       } else {
-        vscode.window.showErrorMessage('Aucun workspace ouvert');
+        vscode.window.showErrorMessage('No workspace open');
       }
     }),
     vscode.commands.registerCommand('specSync.showCompliance', () => {
       if (storage) {
         interactiveShowStatus(context, storage);
       } else {
-        vscode.window.showInformationMessage('Aucune comparaison disponible');
+        vscode.window.showInformationMessage('No comparison available');
       }
     }),
     vscode.commands.registerCommand('specSync.showGaps', () => {
       if (storage) {
         interactiveShowGaps(context, storage);
       } else {
-        vscode.window.showInformationMessage('Aucune comparaison disponible');
+        vscode.window.showInformationMessage('No comparison available');
       }
     }),
     vscode.commands.registerCommand('specSync.exportMarkdown', () => {

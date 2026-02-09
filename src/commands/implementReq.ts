@@ -13,14 +13,14 @@ export async function handleImplementation(
   storage?: StorageManager,
 ): Promise<vscode.ChatResult> {
   if (!storage) {
-    stream.markdown('**Erreur** : Aucun workspace ouvert.');
+    stream.markdown('**Error**: No workspace open.');
     return {};
   }
 
   // Extract requirement ID from prompt
   const reqIdMatch = request.prompt.match(/REQ-(\d+)/i);
   if (!reqIdMatch) {
-    stream.markdown('Spécifiez un ID d\'exigence. Exemple : `@specsync /implement REQ-003`');
+    stream.markdown('Specify a requirement ID. Example: `@specsync /implement REQ-003`');
     return {};
   }
 
@@ -39,17 +39,40 @@ export async function handleImplementation(
   }
 
   if (!requirement) {
-    stream.markdown(`Exigence **${reqId}** non trouvée dans les spécifications uploadées.`);
+    stream.markdown(`Requirement **${reqId}** not found in uploaded specifications.`);
     return {};
   }
 
-  stream.markdown(`## Proposition d'implémentation - ${reqId}\n\n`);
-  stream.markdown(`**Exigence** : ${requirement.text}\n`);
-  stream.markdown(`**Type** : ${requirement.type} | **Priorité** : ${requirement.priority}\n\n`);
+  stream.markdown(`## Implementation Proposal - ${reqId}\n\n`);
+  stream.markdown(`**Requirement**: ${requirement.text}\n`);
+  stream.markdown(`**Type**: ${requirement.type} | **Priority**: ${requirement.priority}\n\n`);
 
-  stream.progress('Analyse du code existant...');
+  stream.progress('Analyzing existing code...');
 
-  const projects = await getWorkspaceProjects();
+  // Get all projects, then let user pick which sub-project to target
+  const allProjects = await getWorkspaceProjects();
+  let projects = allProjects;
+  if (allProjects.length > 1) {
+    const projectItems = allProjects.map(p => ({
+      label: p.name,
+      description: `${p.type} · ${p.language}`,
+      detail: p.path,
+      picked: false,
+      project: p,
+    }));
+
+    const pickedProjects = await vscode.window.showQuickPick(projectItems, {
+      placeHolder: 'Select the target sub-project for implementation',
+      canPickMany: false,
+    });
+
+    if (!pickedProjects) {
+      stream.markdown('*Implementation cancelled (no project selected).*');
+      return {};
+    }
+    projects = [pickedProjects.project];
+  }
+
   const candidates = await findRelevantCode(requirement, projects, 8);
 
   // Build context for LLM
@@ -60,34 +83,45 @@ export async function handleImplementation(
     codeContext += `### ${file.relativePath}\n\`\`\`${ext}\n${truncContent}\n\`\`\`\n\n`;
   }
 
-  const prompt = `Tu es un architecte logiciel expert. On te demande de proposer l'implémentation d'une exigence manquante.
+  const targetProject = projects[0];
+  const techStack = `Type: ${targetProject.type}, Langage: ${targetProject.language}` +
+    (targetProject.dependencies ? `, Dependencies: ${Object.keys(targetProject.dependencies).slice(0, 15).join(', ')}` : '');
 
-## Exigence à implémenter
+  const prompt = `You are an expert software architect. You are asked to propose the implementation of a missing requirement.
+
+## Requirement to Implement
 ${reqId}: ${requirement.text}
 
-## Code existant pertinent
-${codeContext || '*Aucun code existant trouvé.*'}
+## Target Project
+- Name: ${targetProject.name}
+- Path: ${targetProject.path}
+- ${techStack}
 
-## Projets dans le workspace
-${projects.map(p => `- ${p.name} (${p.type}, ${p.language})`).join('\n')}
+## Technical Constraints
+- All created or modified files MUST be in the project folder: ${targetProject.path}
+- Follow the conventions, language (${targetProject.language}), frameworks and patterns already used in the project.
+- Use the same dependencies and libraries as those existing in the project.
 
-Propose un plan d'implémentation détaillé :
-1. Liste les fichiers à créer avec leur chemin et une description
-2. Liste les fichiers existants à modifier avec les changements nécessaires
-3. Donne des notes architecturales si pertinent
-4. Estime la complexité (faible/moyenne/élevée)
+## Relevant Existing Code
+${codeContext || '*No existing code found.*'}
 
-Ensuite, génère le code pour les fichiers principaux.`;
+Propose a detailed implementation plan:
+1. List the files to create with their path relative to the project and a description
+2. List the existing files to modify with the necessary changes
+3. Provide architectural notes if relevant
+4. Estimate the complexity (low/medium/high)
+
+Then, generate the code for the main files.`;
 
   try {
-    stream.progress('Génération de la proposition...');
+    stream.progress('Generating proposal...');
     const messages = [vscode.LanguageModelChatMessage.User(prompt)];
     const response = await request.model.sendRequest(messages, {}, token);
     for await (const fragment of response.text) {
       stream.markdown(fragment);
     }
   } catch {
-    stream.markdown('*Erreur lors de la génération de la proposition.*');
+    stream.markdown('*Error generating the proposal.*');
   }
 
   stream.markdown('\n\n---\n');

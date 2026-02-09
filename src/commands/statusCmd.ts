@@ -10,23 +10,23 @@ export async function handleStatus(
   storage?: StorageManager,
 ): Promise<vscode.ChatResult> {
   if (!storage) {
-    stream.markdown('**Erreur** : Aucun workspace ouvert.');
+    stream.markdown('**Error**: No workspace open.');
     return {};
   }
 
   const specs = await storage.listSpecs();
   if (specs.length === 0) {
-    stream.markdown('Aucune spécification. Utilisez `@specsync /upload` pour commencer.');
+    stream.markdown('No specifications. Use `@specsync /upload` to get started.');
     return {};
   }
 
-  stream.markdown(`## Statut de conformité\n\n`);
+  stream.markdown(`## Compliance Status\n\n`);
 
   for (const spec of specs) {
     const comparison = await storage.getLatestComparison(spec.id);
     if (!comparison) {
       stream.markdown(`### ${spec.title} v${spec.version}\n`);
-      stream.markdown(`Aucune comparaison effectuée.\n\n`);
+      stream.markdown(`No comparison performed.\n\n`);
       continue;
     }
 
@@ -34,12 +34,12 @@ export async function handleStatus(
     const pct = s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0;
 
     stream.markdown(`### ${spec.title} v${spec.version}\n\n`);
-    stream.markdown(`**Conformité : ${pct}%** (${s.implemented}/${s.total} exigences implémentées)\n\n`);
-    stream.markdown(`| Impl. | Partiel | Manquant | Divergent |\n|---|---|---|---|\n`);
+    stream.markdown(`**Compliance: ${pct}%** (${s.implemented}/${s.total} requirements implemented)\n\n`);
+    stream.markdown(`| Impl. | Partial | Missing | Divergent |\n|---|---|---|---|\n`);
     stream.markdown(`| ${s.implemented} | ${s.partial} | ${s.notImplemented} | ${s.divergent} |\n\n`);
 
     if (comparison.gitCommitHash) {
-      stream.markdown(`Dernière analyse : ${new Date(comparison.timestamp).toLocaleDateString('fr-FR')} (commit \`${comparison.gitCommitHash}\`)\n\n`);
+      stream.markdown(`Last analysis: ${new Date(comparison.timestamp).toLocaleDateString('en-US')} (commit \`${comparison.gitCommitHash}\`)\n\n`);
     }
   }
 

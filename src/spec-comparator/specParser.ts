@@ -7,7 +7,7 @@ export function parseSpec(content: DocxContent, specId: string): ParsedSpec {
   globalReqIndex = 0;
 
   const html = content.html;
-  const title = extractTitle(html) || 'Spécification sans titre';
+  const title = extractTitle(html) || 'Untitled Specification';
   const version = extractVersion(html, content.text) || '1.0';
   const sections = parseSections(html);
 
@@ -80,7 +80,7 @@ function parseSections(html: string): SpecSection[] {
     const reqs = extractRequirements(html, 'root');
     return [{
       id: generateId(),
-      title: 'Contenu',
+      title: 'Content',
       level: 1,
       content: stripHtml(html),
       requirements: reqs,

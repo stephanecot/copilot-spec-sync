@@ -37,32 +37,38 @@ export async function findRelevantCode(
   maxCandidates: number = 5,
 ): Promise<CandidateFile[]> {
   const keywords = extractKeywords(requirement.text);
-  if (keywords.length === 0) {
-    return [];
-  }
 
+  const allSourceFiles: { fullPath: string; relativePath: string; projectPath: string }[] = [];
   const scoredFiles: { fullPath: string; relativePath: string; score: number; reason: string; projectPath: string }[] = [];
 
   for (const project of projects) {
-    const fileTree = await getFileTree(project.path, 4);
+    const fileTree = await getFileTree(project.path, 6);
 
     for (const relPath of fileTree) {
-      if (relPath.endsWith('/')) { continue; }
+      // Normalize path separators for consistent matching
+      const normalizedPath = relPath.replace(/\\/g, '/');
 
-      const fileName = path.basename(relPath);
+      if (normalizedPath.endsWith('/')) { continue; }
+
+      const fileName = path.basename(normalizedPath);
       if (SKIP_FILES.has(fileName)) { continue; }
       if (/\.(test|spec|e2e)\./i.test(fileName)) { continue; }
       if (/\.(json|md|txt|yml|yaml|xml|lock|log)$/.test(fileName)) { continue; }
 
-      const { score, reason } = scoreFile(relPath, keywords);
-      if (score > 0) {
-        scoredFiles.push({
-          fullPath: path.join(project.path, relPath),
-          relativePath: relPath,
-          score,
-          reason,
-          projectPath: project.path,
-        });
+      const fullPath = path.join(project.path, relPath);
+      allSourceFiles.push({ fullPath, relativePath: normalizedPath, projectPath: project.path });
+
+      if (keywords.length > 0) {
+        const { score, reason } = scoreFile(normalizedPath, keywords);
+        if (score > 0) {
+          scoredFiles.push({
+            fullPath,
+            relativePath: normalizedPath,
+            score,
+            reason,
+            projectPath: project.path,
+          });
+        }
       }
     }
   }
@@ -70,9 +76,30 @@ export async function findRelevantCode(
   // Sort by score descending
   scoredFiles.sort((a, b) => b.score - a.score);
 
+  // FALLBACK: If no keyword matches, pick a sample of source files so the LLM
+  // still gets code to analyze (instead of returning 0 candidates → auto not-implemented)
+  let topFiles = scoredFiles.slice(0, maxCandidates);
+
+  if (topFiles.length === 0 && allSourceFiles.length > 0) {
+    // Prioritize common source extensions
+    const SOURCE_EXT = new Set(['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.go', '.rs', '.vue', '.svelte', '.rb', '.php', '.kt', '.swift']);
+    const sourceOnly = allSourceFiles.filter(f => SOURCE_EXT.has(path.extname(f.relativePath).toLowerCase()));
+    const pool = sourceOnly.length > 0 ? sourceOnly : allSourceFiles;
+
+    // Pick evenly spread files (not just the first N)
+    const step = Math.max(1, Math.floor(pool.length / maxCandidates));
+    for (let i = 0; i < pool.length && topFiles.length < maxCandidates; i += step) {
+      topFiles.push({
+        ...pool[i],
+        score: 0,
+        reason: 'fallback (no keyword match)',
+      });
+    }
+  }
+
   // Load content for top candidates
   const candidates: CandidateFile[] = [];
-  for (const file of scoredFiles.slice(0, maxCandidates)) {
+  for (const file of topFiles) {
     const content = await readFileContent(file.fullPath, 30000);
     if (content.length > 0) {
       candidates.push({
@@ -100,10 +127,11 @@ function extractKeywords(text: string): string[] {
 }
 
 function scoreFile(filePath: string, keywords: string[]): { score: number; reason: string } {
-  const lower = filePath.toLowerCase();
+  // Normalize to forward slashes for consistent matching on all platforms
+  const lower = filePath.toLowerCase().replace(/\\/g, '/');
   const fileName = path.basename(lower, path.extname(lower));
-  const dirName = path.dirname(lower).split('/').pop() || '';
   const parts = lower.split('/');
+  const dirName = parts.length > 1 ? parts[parts.length - 2] : '';
 
   let score = 0;
   const reasons: string[] = [];
@@ -112,19 +140,19 @@ function scoreFile(filePath: string, keywords: string[]): { score: number; reaso
     // File name match (highest weight)
     if (fileName.includes(keyword)) {
       score += 3;
-      reasons.push(`nom fichier: ${keyword}`);
+      reasons.push(`filename: ${keyword}`);
     }
 
-    // Directory name match
-    if (dirName.includes(keyword)) {
+    // Parent directory name match
+    if (dirName && dirName.includes(keyword)) {
       score += 2;
-      reasons.push(`dossier: ${keyword}`);
+      reasons.push(`directory: ${keyword}`);
     }
 
-    // Any path segment match
+    // Any path segment match (excluding already matched file/dir)
     if (parts.some(p => p.includes(keyword)) && !fileName.includes(keyword) && !dirName.includes(keyword)) {
       score += 1;
-      reasons.push(`chemin: ${keyword}`);
+      reasons.push(`path: ${keyword}`);
     }
   }
 

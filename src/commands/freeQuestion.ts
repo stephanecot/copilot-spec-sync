@@ -15,22 +15,22 @@ export async function handleFreeQuestion(
     const comparison = await storage.getLatestComparisonForAnySpec();
     if (comparison) {
       const s = comparison.summary;
-      contextInfo = `\n\nContexte : La dernière comparaison montre ${s.implemented}/${s.total} exigences implémentées, ${s.partial} partielles, ${s.notImplemented} manquantes, ${s.divergent} divergentes.`;
+      contextInfo = `\n\nContext: The latest comparison shows ${s.implemented}/${s.total} requirements implemented, ${s.partial} partial, ${s.notImplemented} missing, ${s.divergent} divergent.`;
     }
   }
 
-  const prompt = `Tu es un assistant spécialisé dans la gestion de spécifications et la documentation de code. Tu aides les développeurs à comprendre l'écart entre leurs spécifications et leur code source.
+  const prompt = `You are an assistant specialized in specification management and code documentation. You help developers understand the gap between their specifications and source code.
 
-Commandes disponibles :
-- /doc : Générer la documentation du projet
-- /upload : Uploader une spécification Word
-- /compare : Comparer le code avec la spécification
-- /gaps : Voir les écarts
-- /implement REQ-XXX : Proposer une implémentation
-- /history : Voir l'historique
-- /status : Résumé rapide${contextInfo}
+Available commands:
+- /doc : Generate project documentation
+- /upload : Upload a Word specification
+- /compare : Compare code with the specification
+- /gaps : View gaps
+- /implement REQ-XXX : Propose an implementation
+- /history : View history
+- /status : Quick summary${contextInfo}
 
-Question de l'utilisateur : ${request.prompt}`;
+User question: ${request.prompt}`;
 
   const messages = [vscode.LanguageModelChatMessage.User(prompt)];
 
@@ -40,12 +40,12 @@ Question de l'utilisateur : ${request.prompt}`;
       stream.markdown(fragment);
     }
   } catch {
-    stream.markdown(`Pour utiliser Copilot Spec Sync, essayez une des commandes disponibles :\n\n`);
-    stream.markdown(`- \`/doc\` - Générer la documentation\n`);
-    stream.markdown(`- \`/upload\` - Uploader une spécification\n`);
-    stream.markdown(`- \`/compare\` - Comparer code vs spec\n`);
-    stream.markdown(`- \`/gaps\` - Voir les écarts\n`);
-    stream.markdown(`- \`/status\` - Résumé de conformité\n`);
+    stream.markdown(`To use Copilot Spec Sync, try one of the available commands:\n\n`);
+    stream.markdown(`- \`/doc\` - Generate documentation\n`);
+    stream.markdown(`- \`/upload\` - Upload a specification\n`);
+    stream.markdown(`- \`/compare\` - Compare code vs spec\n`);
+    stream.markdown(`- \`/gaps\` - View gaps\n`);
+    stream.markdown(`- \`/status\` - Compliance summary\n`);
   }
 
   return {};

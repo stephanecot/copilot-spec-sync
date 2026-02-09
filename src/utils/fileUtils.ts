@@ -18,17 +18,23 @@ const IGNORED_EXTENSIONS = new Set([
 export async function getWorkspaceProjects(): Promise<ProjectInfo[]> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
+    console.log('[Spec Sync] No workspace folders found');
     return [];
   }
+
+  console.log(`[Spec Sync] Detecting projects in ${workspaceFolders.length} workspace folder(s)`);
 
   const projects: ProjectInfo[] = [];
 
   for (const folder of workspaceFolders) {
     const rootPath = folder.uri.fsPath;
+    console.log(`  - Scanning: ${folder.name} at ${rootPath}`);
     const projectType = await detectProjectType(rootPath);
     const deps = await readDependencies(rootPath, projectType);
     const entryPoints = await findEntryPoints(rootPath, projectType);
     const lang = getLanguageForType(projectType);
+
+    console.log(`    Type: ${projectType}, Language: ${lang}, Entry points: ${entryPoints.length}`);
 
     projects.push({
       name: folder.name,
@@ -41,9 +47,13 @@ export async function getWorkspaceProjects(): Promise<ProjectInfo[]> {
 
     // Check for monorepo sub-projects
     const subProjects = await detectSubProjects(rootPath);
+    if (subProjects.length > 0) {
+      console.log(`    Found ${subProjects.length} sub-projects`);
+    }
     projects.push(...subProjects);
   }
 
+  console.log(`[Spec Sync] Total projects detected: ${projects.length}`);
   return projects;
 }
 

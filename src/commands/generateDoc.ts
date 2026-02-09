@@ -8,14 +8,14 @@ import { getWorkspaceProjects, getRelevantFiles, readFileContent } from '../util
 import { GeneratedDocumentation, DocumentationSection, ProjectInfo, ModuleType } from '../types.js';
 
 const DOC_SECTIONS: { key: string; title: string; category: ModuleType }[] = [
-  { key: 'overview', title: 'Vue d\'ensemble', category: 'other' },
+  { key: 'overview', title: 'Overview', category: 'other' },
   { key: 'architecture', title: 'Architecture', category: 'other' },
   { key: 'api', title: 'API / Endpoints', category: 'routes' },
-  { key: 'models', title: 'Modèles de données', category: 'models' },
-  { key: 'services', title: 'Services / Logique métier', category: 'services' },
+  { key: 'models', title: 'Data Models', category: 'models' },
+  { key: 'services', title: 'Services / Business Logic', category: 'services' },
   { key: 'config', title: 'Configuration', category: 'config' },
   { key: 'tests', title: 'Tests', category: 'tests' },
-  { key: 'deployment', title: 'Déploiement', category: 'other' },
+  { key: 'deployment', title: 'Deployment', category: 'other' },
 ];
 
 export async function handleDocGeneration(
@@ -37,16 +37,16 @@ export async function handleDocGeneration(
   }
 
   // Detect projects
-  stream.progress('Détection des projets dans le workspace...');
+  stream.progress('Detecting projects in workspace...');
   const projects = await getWorkspaceProjects();
 
   if (projects.length === 0) {
-    stream.markdown('Aucun projet détecté dans le workspace. Ouvrez un dossier contenant un projet.');
+    stream.markdown('No projects detected in the workspace. Open a folder containing a project.');
     return {};
   }
 
   // Display detected projects
-  stream.markdown(`**Projets détectés** :\n\n`);
+  stream.markdown(`**Projects detected**:\n\n`);
   for (const project of projects) {
     stream.markdown(`- \`${project.name}/\` (${project.type} - ${project.language})\n`);
   }
@@ -60,7 +60,7 @@ export async function handleDocGeneration(
     if (token.isCancellationRequested) { break; }
 
     stream.markdown(`# Documentation - ${project.name}\n\n`);
-    stream.progress(`Analyse du projet ${project.name}...`);
+    stream.progress(`Analyzing project ${project.name}...`);
 
     // Step 1: Analyze project structure
     const analysis = await analyzeProject(project.path);
@@ -83,7 +83,7 @@ export async function handleDocGeneration(
     for (const section of DOC_SECTIONS) {
       if (token.isCancellationRequested) { break; }
 
-      stream.progress(`Génération : ${section.title}...`);
+      stream.progress(`Generating: ${section.title}...`);
 
       // Gather relevant files for this section
       const relevantFilePaths = await getRelevantFiles(project.path, section.category, project.type);
@@ -116,7 +116,7 @@ export async function handleDocGeneration(
         }
         stream.markdown('\n\n');
       } catch {
-        sectionContent = `*Section non générée (erreur LLM)*`;
+        sectionContent = `*Section not generated (LLM error)*`;
         stream.markdown(`${sectionContent}\n\n`);
       }
 
@@ -142,11 +142,11 @@ export async function handleDocGeneration(
   stream.markdown('---\n\n');
   stream.button({
     command: 'specSync.exportMarkdown',
-    title: 'Exporter en Markdown',
+    title: 'Export as Markdown',
   });
   stream.button({
     command: 'specSync.exportDocx',
-    title: 'Exporter en Word',
+    title: 'Export as Word',
   });
 
   return { metadata: { command: 'doc' } };
@@ -159,13 +159,13 @@ async function handleExport(
 ): Promise<vscode.ChatResult> {
   const doc = context.workspaceState.get<GeneratedDocumentation>('lastGeneratedDoc');
   if (!doc) {
-    stream.markdown('Aucune documentation générée. Utilisez `@specsync /doc` pour en générer une.');
+    stream.markdown('No documentation generated. Use `@specsync /doc` to generate one.');
     return {};
   }
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
-    stream.markdown('Aucun workspace ouvert.');
+    stream.markdown('No workspace open.');
     return {};
   }
 
@@ -182,7 +182,7 @@ async function handleExport(
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    stream.markdown(`**Erreur d'export** : ${msg}`);
+    stream.markdown(`**Export error**: ${msg}`);
   }
 
   return { metadata: { command: 'doc' } };

@@ -106,14 +106,16 @@ export class StorageManager {
     const filePath = path.join(comparisonsDir, `${timestamp}.json`);
     await fs.writeFile(filePath, JSON.stringify(comparison, null, 2), 'utf-8');
 
-    // Update metadata
+    // Update metadata and increment prompt version
     const config = await this.getConfig();
     const specMeta = config.specs.find(s => s.id === comparison.specId);
     if (specMeta) {
       specMeta.comparisonCount = (specMeta.comparisonCount || 0) + 1;
       specMeta.lastComparisonAt = comparison.timestamp;
-      await this.writeConfig(config);
     }
+    // Increment global prompt version
+    config.promptVersion = (config.promptVersion || 0) + 1;
+    await this.writeConfig(config);
   }
 
   async getComparison(specId: string, comparisonId: string): Promise<ComparisonRecord | undefined> {
@@ -183,6 +185,11 @@ export class StorageManager {
     const config = await this.getConfig();
     Object.assign(config, updates);
     await this.writeConfig(config);
+  }
+
+  async getPromptVersion(): Promise<number> {
+    const config = await this.getConfig();
+    return config.promptVersion || 0;
   }
 
   // --- Helpers ---

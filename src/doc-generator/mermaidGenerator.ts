@@ -115,20 +115,20 @@ export function generateModuleDiagram(modules: ModuleInfo[]): string {
 export function generateComplianceDiagram(comparison: ComparisonRecord): string {
   const s = comparison.summary;
   const lines: string[] = [
-    '  pie title Conformité des exigences',
+    '  pie title Requirements Compliance',
   ];
 
   if (s.implemented > 0) {
-    lines.push(`    "Implémentées" : ${s.implemented}`);
+    lines.push(`    "Implemented" : ${s.implemented}`);
   }
   if (s.partial > 0) {
-    lines.push(`    "Partielles" : ${s.partial}`);
+    lines.push(`    "Partial" : ${s.partial}`);
   }
   if (s.notImplemented > 0) {
-    lines.push(`    "Non implémentées" : ${s.notImplemented}`);
+    lines.push(`    "Not Implemented" : ${s.notImplemented}`);
   }
   if (s.divergent > 0) {
-    lines.push(`    "Divergentes" : ${s.divergent}`);
+    lines.push(`    "Divergent" : ${s.divergent}`);
   }
 
   return lines.join('\n');
@@ -144,15 +144,15 @@ export function generateEvolutionDiagram(
     return 'graph TD\n  A[No history data]';
   }
 
-  const lines: string[] = ['xychart-beta', '  title "Évolution de la conformité"', '  x-axis ['];
+  const lines: string[] = ['xychart-beta', '  title "Compliance Evolution"', '  x-axis ['];
 
   const labels = dataPoints.map(dp => {
     const date = new Date(dp.date);
-    return `"${date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}"`;
+    return `"${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}"`;
   });
   lines.push(`    ${labels.join(', ')}`);
   lines.push('  ]');
-  lines.push('  y-axis "Conformité (%)" 0 --> 100');
+  lines.push('  y-axis "Compliance (%)" 0 --> 100');
   lines.push(`  line [${dataPoints.map(dp => dp.implementedPct).join(', ')}]`);
 
   return lines.join('\n');

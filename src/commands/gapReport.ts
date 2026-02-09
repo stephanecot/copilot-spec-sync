@@ -10,13 +10,13 @@ export async function handleGapReport(
   storage?: StorageManager,
 ): Promise<vscode.ChatResult> {
   if (!storage) {
-    stream.markdown('**Erreur** : Aucun workspace ouvert.');
+    stream.markdown('**Error**: No workspace open.');
     return {};
   }
 
   const comparison = await storage.getLatestComparisonForAnySpec();
   if (!comparison) {
-    stream.markdown('Aucune comparaison disponible. Utilisez `@specsync /compare` pour en lancer une.');
+    stream.markdown('No comparison available. Use `@specsync /compare` to run one.');
     return {};
   }
 
@@ -25,17 +25,17 @@ export async function handleGapReport(
   );
 
   if (gaps.length === 0) {
-    stream.markdown('Toutes les exigences sont implémentées. Aucun écart détecté.');
+    stream.markdown('All requirements are implemented. No gaps detected.');
     return { metadata: { command: 'gaps' } };
   }
 
-  stream.markdown(`## Écarts détectés (${gaps.length})\n\n`);
+  stream.markdown(`## Gaps Detected (${gaps.length})\n\n`);
 
   // Not implemented
   const notImpl = gaps.filter(g => g.status === 'not-implemented');
   if (notImpl.length > 0) {
-    stream.markdown(`### Non implémentées (${notImpl.length})\n\n`);
-    stream.markdown(`| ID | Exigence | Actions suggérées |\n|---|---|---|\n`);
+    stream.markdown(`### Not Implemented (${notImpl.length})\n\n`);
+    stream.markdown(`| ID | Requirement | Suggested Actions |\n|---|---|---|\n`);
     for (const gap of notImpl) {
       const truncText = gap.requirementText.length > 60 ? gap.requirementText.substring(0, 60) + '...' : gap.requirementText;
       const actions = gap.suggestedActions.slice(0, 1).join('; ') || '-';
@@ -47,8 +47,8 @@ export async function handleGapReport(
   // Partially implemented
   const partial = gaps.filter(g => g.status === 'partially-implemented');
   if (partial.length > 0) {
-    stream.markdown(`### Partiellement implémentées (${partial.length})\n\n`);
-    stream.markdown(`| ID | Exigence | Éléments manquants |\n|---|---|---|\n`);
+    stream.markdown(`### Partially Implemented (${partial.length})\n\n`);
+    stream.markdown(`| ID | Requirement | Missing Elements |\n|---|---|---|\n`);
     for (const gap of partial) {
       const truncText = gap.requirementText.length > 60 ? gap.requirementText.substring(0, 60) + '...' : gap.requirementText;
       const missing = gap.missingElements.slice(0, 2).join('; ') || '-';
@@ -60,8 +60,8 @@ export async function handleGapReport(
   // Divergent
   const divergent = gaps.filter(g => g.status === 'divergent');
   if (divergent.length > 0) {
-    stream.markdown(`### Divergentes (${divergent.length})\n\n`);
-    stream.markdown(`| ID | Exigence | Explication |\n|---|---|---|\n`);
+    stream.markdown(`### Divergent (${divergent.length})\n\n`);
+    stream.markdown(`| ID | Requirement | Explanation |\n|---|---|---|\n`);
     for (const gap of divergent) {
       const truncText = gap.requirementText.length > 60 ? gap.requirementText.substring(0, 60) + '...' : gap.requirementText;
       const explanation = gap.explanation.length > 80 ? gap.explanation.substring(0, 80) + '...' : gap.explanation;

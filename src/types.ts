@@ -164,6 +164,7 @@ export interface ModelInfo {
 export interface SpecSyncConfig {
   lastActiveSpecId?: string;
   specs: SpecMetadata[];
+  promptVersion?: number;
 }
 
 export interface SpecMetadata {

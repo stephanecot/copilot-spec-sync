@@ -4,10 +4,10 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Tabl
 import { ComparisonRecord, ParsedSpec, ComparisonStatus } from '../types.js';
 
 const STATUS_LABELS: Record<ComparisonStatus, string> = {
-  'implemented': 'Implémentée',
-  'partially-implemented': 'Partielle',
-  'not-implemented': 'Non implémentée',
-  'divergent': 'Divergente',
+  'implemented': 'Implemented',
+  'partially-implemented': 'Partial',
+  'not-implemented': 'Not Implemented',
+  'divergent': 'Divergent',
 };
 
 const STATUS_COLORS: Record<ComparisonStatus, string> = {
@@ -53,7 +53,7 @@ export async function exportComplianceReport(
 
   // Title
   children.push(new Paragraph({
-    children: [new TextRun({ text: `Rapport de conformité`, bold: true, size: 48, font: 'Arial' })],
+    children: [new TextRun({ text: `Compliance Report`, bold: true, size: 48, font: 'Arial' })],
     heading: HeadingLevel.TITLE,
     alignment: AlignmentType.CENTER,
     spacing: { after: 200 },
@@ -67,7 +67,7 @@ export async function exportComplianceReport(
 
   children.push(new Paragraph({
     children: [new TextRun({
-      text: `Version ${spec.version} — ${new Date(comparison.timestamp).toLocaleDateString('fr-FR')}`,
+      text: `Version ${spec.version} — ${new Date(comparison.timestamp).toLocaleDateString('en-US')}`,
       italics: true, size: 22, font: 'Arial', color: '666666',
     })],
     alignment: AlignmentType.CENTER,
@@ -76,7 +76,7 @@ export async function exportComplianceReport(
 
   if (comparison.gitCommitHash) {
     children.push(new Paragraph({
-      children: [new TextRun({ text: `Commit : ${comparison.gitCommitHash}`, size: 20, font: 'Arial', color: '999999' })],
+      children: [new TextRun({ text: `Commit: ${comparison.gitCommitHash}`, size: 20, font: 'Arial', color: '999999' })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 },
     }));
@@ -84,45 +84,45 @@ export async function exportComplianceReport(
 
   // Summary heading
   children.push(new Paragraph({
-    children: [new TextRun({ text: 'Résumé', bold: true, size: 32, font: 'Arial' })],
+    children: [new TextRun({ text: 'Summary', bold: true, size: 32, font: 'Arial' })],
     heading: HeadingLevel.HEADING_1,
     spacing: { before: 400, after: 200 },
   }));
 
   children.push(new Paragraph({
-    children: [new TextRun({ text: `Conformité globale : ${implPct}%`, bold: true, size: 28, font: 'Arial' })],
+    children: [new TextRun({ text: `Overall compliance: ${implPct}%`, bold: true, size: 28, font: 'Arial' })],
     spacing: { after: 200 },
   }));
 
   // Summary table
   const summaryRows = [
     new TableRow({
-      children: [headerCell('Statut'), headerCell('Nombre'), headerCell('Pourcentage')],
+      children: [headerCell('Status'), headerCell('Count'), headerCell('Percentage')],
     }),
     new TableRow({
       children: [
-        textCell('Implémentées', '4caf50'),
+        textCell('Implemented', '4caf50'),
         textCell(String(s.implemented)),
         textCell(`${s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0}%`),
       ],
     }),
     new TableRow({
       children: [
-        textCell('Partielles', 'ff9800'),
+        textCell('Partial', 'ff9800'),
         textCell(String(s.partial)),
         textCell(`${s.total > 0 ? Math.round((s.partial / s.total) * 100) : 0}%`),
       ],
     }),
     new TableRow({
       children: [
-        textCell('Non implémentées', 'f44336'),
+        textCell('Not Implemented', 'f44336'),
         textCell(String(s.notImplemented)),
         textCell(`${s.total > 0 ? Math.round((s.notImplemented / s.total) * 100) : 0}%`),
       ],
     }),
     new TableRow({
       children: [
-        textCell('Divergentes', '9c27b0'),
+        textCell('Divergent', '9c27b0'),
         textCell(String(s.divergent)),
         textCell(`${s.total > 0 ? Math.round((s.divergent / s.total) * 100) : 0}%`),
       ],
@@ -133,7 +133,7 @@ export async function exportComplianceReport(
 
   // Details heading
   children.push(new Paragraph({
-    children: [new TextRun({ text: 'Détail par exigence', bold: true, size: 32, font: 'Arial' })],
+    children: [new TextRun({ text: 'Detail by Requirement', bold: true, size: 32, font: 'Arial' })],
     heading: HeadingLevel.HEADING_1,
     spacing: { before: 400, after: 200 },
   }));
@@ -142,10 +142,10 @@ export async function exportComplianceReport(
   const detailHeaderRow = new TableRow({
     children: [
       headerCell('ID'),
-      headerCell('Exigence'),
-      headerCell('Statut'),
-      headerCell('Confiance'),
-      headerCell('Fichiers'),
+      headerCell('Requirement'),
+      headerCell('Status'),
+      headerCell('Confidence'),
+      headerCell('Files'),
     ],
   });
 
@@ -185,7 +185,7 @@ export async function exportComplianceReport(
   });
 
   const buffer = await Packer.toBuffer(doc);
-  const fileName = `rapport-conformite-${spec.title.replace(/\s+/g, '-').toLowerCase()}.docx`;
+  const fileName = `compliance-report-${spec.title.replace(/\s+/g, '-').toLowerCase()}.docx`;
   const filePath = path.join(outputDir, fileName);
   await fs.writeFile(filePath, buffer);
 
@@ -197,24 +197,24 @@ export function buildComplianceMarkdown(comparison: ComparisonRecord, spec: Pars
   const implPct = s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0;
   const lines: string[] = [];
 
-  lines.push(`# Rapport de conformité - ${spec.title}`);
-  lines.push(`> Version ${spec.version} — ${new Date(comparison.timestamp).toLocaleDateString('fr-FR')}`);
+  lines.push(`# Compliance Report - ${spec.title}`);
+  lines.push(`> Version ${spec.version} — ${new Date(comparison.timestamp).toLocaleDateString('en-US')}`);
   if (comparison.gitCommitHash) {
-    lines.push(`> Commit : \`${comparison.gitCommitHash}\``);
+    lines.push(`> Commit: \`${comparison.gitCommitHash}\``);
   }
   lines.push('');
-  lines.push(`## Résumé — ${implPct}% conforme`);
+  lines.push(`## Summary — ${implPct}% compliant`);
   lines.push('');
-  lines.push('| Statut | Nombre | % |');
+  lines.push('| Status | Count | % |');
   lines.push('|---|---|---|');
-  lines.push(`| Implémentées | ${s.implemented} | ${s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0}% |`);
-  lines.push(`| Partielles | ${s.partial} | ${s.total > 0 ? Math.round((s.partial / s.total) * 100) : 0}% |`);
-  lines.push(`| Non implémentées | ${s.notImplemented} | ${s.total > 0 ? Math.round((s.notImplemented / s.total) * 100) : 0}% |`);
-  lines.push(`| Divergentes | ${s.divergent} | ${s.total > 0 ? Math.round((s.divergent / s.total) * 100) : 0}% |`);
+  lines.push(`| Implemented | ${s.implemented} | ${s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0}% |`);
+  lines.push(`| Partial | ${s.partial} | ${s.total > 0 ? Math.round((s.partial / s.total) * 100) : 0}% |`);
+  lines.push(`| Not Implemented | ${s.notImplemented} | ${s.total > 0 ? Math.round((s.notImplemented / s.total) * 100) : 0}% |`);
+  lines.push(`| Divergent | ${s.divergent} | ${s.total > 0 ? Math.round((s.divergent / s.total) * 100) : 0}% |`);
   lines.push('');
-  lines.push('## Détail par exigence');
+  lines.push('## Detail by Requirement');
   lines.push('');
-  lines.push('| ID | Exigence | Statut | Confiance | Fichiers |');
+  lines.push('| ID | Requirement | Status | Confidence | Files |');
   lines.push('|---|---|---|---|---|');
 
   for (const detail of comparison.details) {

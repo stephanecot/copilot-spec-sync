@@ -5,33 +5,33 @@ import { truncateToTokenBudget } from '../../utils/tokenBudget.js';
 export function buildStructureAnalysisMessages(analysis: ProjectAnalysis): vscode.LanguageModelChatMessage[] {
   const fileTreeStr = analysis.fileTree.slice(0, 100).join('\n');
   const keyFilesStr = analysis.keyFiles.map(f => `- ${f.path} (${f.role})`).join('\n');
-  const modulesStr = analysis.moduleStructure.map(m => `- ${m.name}/ (${m.type}, ${m.files.length} fichiers)`).join('\n');
+  const modulesStr = analysis.moduleStructure.map(m => `- ${m.name}/ (${m.type}, ${m.files.length} files)`).join('\n');
   const depsStr = Object.entries(analysis.projectInfo.dependencies).slice(0, 20).map(([k, v]) => `  ${k}: ${v}`).join('\n');
 
-  const prompt = `Tu es un architecte logiciel expert. Analyse la structure suivante et produis un plan de documentation.
+  const prompt = `You are an expert software architect. Analyze the following structure and produce a documentation plan.
 
-## Projet : ${analysis.projectInfo.name}
-**Type** : ${analysis.projectInfo.type}
-**Langage** : ${analysis.projectInfo.language}
-**Frameworks** : ${analysis.frameworks.join(', ') || 'N/A'}
-**Patterns** : ${analysis.patterns.join(', ') || 'N/A'}
+## Project: ${analysis.projectInfo.name}
+**Type**: ${analysis.projectInfo.type}
+**Language**: ${analysis.projectInfo.language}
+**Frameworks**: ${analysis.frameworks.join(', ') || 'N/A'}
+**Patterns**: ${analysis.patterns.join(', ') || 'N/A'}
 
-## Points d'entrée
+## Entry Points
 ${analysis.projectInfo.entryPoints.join(', ') || 'N/A'}
 
-## Fichiers clés
-${keyFilesStr || 'Aucun'}
+## Key Files
+${keyFilesStr || 'None'}
 
 ## Modules
-${modulesStr || 'Aucun'}
+${modulesStr || 'None'}
 
-## Dépendances
-${depsStr || 'Aucune'}
+## Dependencies
+${depsStr || 'None'}
 
-## Arborescence (extrait)
+## File Tree (excerpt)
 ${truncateToTokenBudget(fileTreeStr, 2000)}
 
-Produis un résumé structurel concis de ce projet en 3-5 phrases.`;
+Produce a concise structural summary of this project in 3-5 sentences.`;
 
   return [vscode.LanguageModelChatMessage.User(prompt)];
 }
@@ -47,17 +47,17 @@ export function buildSectionGenerationMessages(
     : 'Write the documentation in English.';
 
   const sectionInstructions: Record<string, string> = {
-    overview: `Génère une vue d'ensemble du projet : description, stack technique, dépendances principales, objectif du projet. ${langInstruction}`,
-    architecture: `Décris l'architecture du projet : structure des dossiers, patterns utilisés (MVC, microservices, etc.), flux de données. Si possible inclus un diagramme Mermaid. ${langInstruction}`,
-    api: `Documente les API et endpoints du projet : routes HTTP, méthodes, paramètres, corps de requête/réponse. Format en tableau Markdown. ${langInstruction}`,
-    models: `Documente les modèles de données : entités, schémas, DTOs, relations entre modèles. Format en tableau. ${langInstruction}`,
-    services: `Documente les services et la logique métier : description de chaque service, méthodes publiques, flux métier principaux. ${langInstruction}`,
-    config: `Documente la configuration : variables d'environnement, fichiers de config, profils. ${langInstruction}`,
-    tests: `Documente la stratégie de test : types de tests, couverture, frameworks utilisés, comment lancer les tests. ${langInstruction}`,
-    deployment: `Documente le déploiement : scripts, Dockerfiles, CI/CD, instructions de déploiement. ${langInstruction}`,
+    overview: `Generate a project overview: description, tech stack, main dependencies, project objective. ${langInstruction}`,
+    architecture: `Describe the project architecture: folder structure, design patterns (MVC, microservices, etc.), data flow. Include a Mermaid diagram if possible. ${langInstruction}`,
+    api: `Document the project APIs and endpoints: HTTP routes, methods, parameters, request/response bodies. Format as Markdown tables. ${langInstruction}`,
+    models: `Document the data models: entities, schemas, DTOs, model relationships. Format as tables. ${langInstruction}`,
+    services: `Document the services and business logic: description of each service, public methods, main business flows. ${langInstruction}`,
+    config: `Document the configuration: environment variables, config files, profiles. ${langInstruction}`,
+    tests: `Document the testing strategy: test types, coverage, frameworks used, how to run tests. ${langInstruction}`,
+    deployment: `Document deployment: scripts, Dockerfiles, CI/CD, deployment instructions. ${langInstruction}`,
   };
 
-  const instruction = sectionInstructions[section] || `Documente la section "${section}". ${langInstruction}`;
+  const instruction = sectionInstructions[section] || `Document the "${section}" section. ${langInstruction}`;
 
   let filesContext = '';
   let totalTokens = 0;
@@ -79,20 +79,20 @@ export function buildSectionGenerationMessages(
     totalTokens += tokens;
   }
 
-  const prompt = `Tu es un rédacteur technique expert. ${instruction}
+  const prompt = `You are an expert technical writer. ${instruction}
 
-## Contexte du projet
-- **Nom** : ${projectAnalysis.projectInfo.name}
-- **Type** : ${projectAnalysis.projectInfo.type}
-- **Langage** : ${projectAnalysis.projectInfo.language}
-- **Frameworks** : ${projectAnalysis.frameworks.join(', ') || 'N/A'}
+## Project Context
+- **Name**: ${projectAnalysis.projectInfo.name}
+- **Type**: ${projectAnalysis.projectInfo.type}
+- **Language**: ${projectAnalysis.projectInfo.language}
+- **Frameworks**: ${projectAnalysis.frameworks.join(', ') || 'N/A'}
 
-## Fichiers source pertinents
+## Relevant Source Files
 
-${filesContext || '*Aucun fichier pertinent trouvé pour cette section.*'}
+${filesContext || '*No relevant files found for this section.*'}
 
-Génère la documentation pour cette section. Sois concis, précis et technique. Utilise des tableaux Markdown quand c'est approprié.
-Ne répète pas le titre de la section, commence directement par le contenu.`;
+Generate the documentation for this section. Be concise, precise, and technical. Use Markdown tables when appropriate.
+Do not repeat the section title, start directly with the content.`;
 
   return [vscode.LanguageModelChatMessage.User(prompt)];
 }

@@ -42,10 +42,10 @@ export function createSpecSyncParticipant(
       }
     } catch (error) {
       if (error instanceof vscode.LanguageModelError) {
-        stream.markdown(`**Erreur LLM** : ${error.message}\n\nCode: ${error.code}`);
+        stream.markdown(`**LLM Error**: ${error.message}\n\nCode: ${error.code}`);
       } else {
         const msg = error instanceof Error ? error.message : String(error);
-        stream.markdown(`**Erreur** : ${msg}`);
+        stream.markdown(`**Error**: ${msg}`);
       }
       return {};
     }
@@ -60,15 +60,15 @@ export function createSpecSyncParticipant(
       const followups: vscode.ChatFollowup[] = [];
 
       if (metadata?.command === 'doc') {
-        followups.push({ prompt: '@specsync /doc export md', label: 'Exporter en Markdown' });
-        followups.push({ prompt: '@specsync /doc export docx', label: 'Exporter en Word' });
+        followups.push({ prompt: '@specsync /doc export md', label: 'Export as Markdown' });
+        followups.push({ prompt: '@specsync /doc export docx', label: 'Export as Word' });
       }
       if (metadata?.command === 'compare') {
-        followups.push({ prompt: '@specsync /gaps', label: 'Voir les \u00e9carts' });
-        followups.push({ prompt: '@specsync /history', label: 'Voir l\'historique' });
+        followups.push({ prompt: '@specsync /gaps', label: 'View gaps' });
+        followups.push({ prompt: '@specsync /history', label: 'View history' });
       }
       if (metadata?.command === 'upload') {
-        followups.push({ prompt: '@specsync /compare', label: 'Comparer avec le code' });
+        followups.push({ prompt: '@specsync /compare', label: 'Compare with code' });
       }
 
       return followups;

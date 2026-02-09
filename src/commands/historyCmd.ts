@@ -11,7 +11,7 @@ export async function handleHistory(
   storage?: StorageManager,
 ): Promise<vscode.ChatResult> {
   if (!storage) {
-    stream.markdown('**Erreur** : Aucun workspace ouvert.');
+    stream.markdown('**Error**: No workspace open.');
     return {};
   }
 
@@ -25,25 +25,25 @@ export async function handleHistory(
   // Default: show history table
   const specs = await storage.listSpecs();
   if (specs.length === 0) {
-    stream.markdown('Aucune spécification. Utilisez `@specsync /upload` pour commencer.');
+    stream.markdown('No specifications. Use `@specsync /upload` to get started.');
     return {};
   }
 
-  stream.markdown(`## Historique des comparaisons\n\n`);
+  stream.markdown(`## Comparison History\n\n`);
 
   for (const spec of specs) {
     const comparisons = await storage.listComparisons(spec.id);
     if (comparisons.length === 0) {
-      stream.markdown(`### ${spec.title} v${spec.version}\nAucune comparaison.\n\n`);
+      stream.markdown(`### ${spec.title} v${spec.version}\nNo comparisons.\n\n`);
       continue;
     }
 
     stream.markdown(`### ${spec.title} v${spec.version}\n\n`);
-    stream.markdown(`| Date | Commit | Impl. | Partiel | Manquant | Divergent | Progression |\n|---|---|---|---|---|---|---|\n`);
+    stream.markdown(`| Date | Commit | Impl. | Partial | Missing | Divergent | Progress |\n|---|---|---|---|---|---|---|\n`);
 
     for (let i = 0; i < comparisons.length; i++) {
       const c = comparisons[i];
-      const date = new Date(c.timestamp).toLocaleDateString('fr-FR');
+      const date = new Date(c.timestamp).toLocaleDateString('en-US');
       const commit = c.gitCommitHash || '-';
       const s = c.summary;
 
@@ -74,7 +74,7 @@ async function handleHistoryCompare(
 ): Promise<vscode.ChatResult> {
   const specs = await storage.listSpecs();
   if (specs.length === 0) {
-    stream.markdown('Aucune spécification disponible.');
+    stream.markdown('No specifications available.');
     return {};
   }
 
@@ -82,7 +82,7 @@ async function handleHistoryCompare(
   const comparisons = await storage.listComparisons(specId);
 
   if (comparisons.length < 2) {
-    stream.markdown('Il faut au moins 2 comparaisons pour comparer. Relancez `@specsync /compare` après avoir modifié votre code.');
+    stream.markdown('At least 2 comparisons are needed to compare. Run `@specsync /compare` again after modifying your code.');
     return {};
   }
 
@@ -92,13 +92,13 @@ async function handleHistoryCompare(
 
   const diff = computeSnapshotDiff(current, previous);
 
-  const currentDate = new Date(current.timestamp).toLocaleDateString('fr-FR');
-  const prevDate = new Date(previous.timestamp).toLocaleDateString('fr-FR');
+  const currentDate = new Date(current.timestamp).toLocaleDateString('en-US');
+  const prevDate = new Date(previous.timestamp).toLocaleDateString('en-US');
 
-  stream.markdown(`## Évolution du ${prevDate} au ${currentDate}\n\n`);
+  stream.markdown(`## Evolution from ${prevDate} to ${currentDate}\n\n`);
 
   if (diff.newlyImplemented.length > 0) {
-    stream.markdown(`### Nouvellement implémentées (${diff.newlyImplemented.length})\n\n`);
+    stream.markdown(`### Newly Implemented (${diff.newlyImplemented.length})\n\n`);
     for (const r of diff.newlyImplemented) {
       const truncText = r.requirementText.length > 60 ? r.requirementText.substring(0, 60) + '...' : r.requirementText;
       stream.markdown(`- **${r.requirementId}** : ${truncText}\n`);
@@ -107,7 +107,7 @@ async function handleHistoryCompare(
   }
 
   if (diff.improved.length > 0) {
-    stream.markdown(`### Améliorées (${diff.improved.length})\n\n`);
+    stream.markdown(`### Improved (${diff.improved.length})\n\n`);
     for (const r of diff.improved) {
       stream.markdown(`- **${r.requirementId}** : ${r.previousStatus} -> ${r.status}\n`);
     }
@@ -115,7 +115,7 @@ async function handleHistoryCompare(
   }
 
   if (diff.regressions.length > 0) {
-    stream.markdown(`### Régressions (${diff.regressions.length})\n\n`);
+    stream.markdown(`### Regressions (${diff.regressions.length})\n\n`);
     for (const r of diff.regressions) {
       stream.markdown(`- **${r.requirementId}** : ${r.previousStatus} -> ${r.status}\n`);
     }
@@ -123,13 +123,13 @@ async function handleHistoryCompare(
   }
 
   if (diff.stillMissing.length > 0) {
-    stream.markdown(`### Toujours manquantes (${diff.stillMissing.length})\n\n`);
+    stream.markdown(`### Still Missing (${diff.stillMissing.length})\n\n`);
     for (const r of diff.stillMissing.slice(0, 10)) {
       const truncText = r.requirementText.length > 60 ? r.requirementText.substring(0, 60) + '...' : r.requirementText;
       stream.markdown(`- **${r.requirementId}** : ${truncText}\n`);
     }
     if (diff.stillMissing.length > 10) {
-      stream.markdown(`\n*... et ${diff.stillMissing.length - 10} autres*\n`);
+      stream.markdown(`\n*... and ${diff.stillMissing.length - 10} more*\n`);
     }
     stream.markdown('\n');
   }

@@ -16,9 +16,9 @@ export async function analyzeRequirement(
       status: 'not-implemented',
       confidence: 0,
       matchedFiles: [],
-      explanation: 'Aucun fichier de code pertinent trouvé pour cette exigence.',
+      explanation: 'No relevant code files found for this requirement.',
       missingElements: [requirement.text],
-      suggestedActions: ['Créer les fichiers nécessaires pour implémenter cette exigence.'],
+      suggestedActions: ['Create the necessary files to implement this requirement.'],
       evolution: 'new',
     };
   }
@@ -28,25 +28,25 @@ export async function analyzeRequirement(
   for (const file of candidateFiles.slice(0, 5)) {
     const ext = file.relativePath.split('.').pop() || 'text';
     const truncatedContent = file.content.length > 8000
-      ? file.content.substring(0, 8000) + '\n// ... [tronqué]'
+      ? file.content.substring(0, 8000) + '\n// ... [truncated]'
       : file.content;
     filesContext += `### ${file.relativePath}\n\`\`\`${ext}\n${truncatedContent}\n\`\`\`\n\n`;
   }
 
-  const prompt = `Tu es un analyste technique expert. Compare l'exigence suivante avec le code source fourni.
+  const prompt = `You are an expert technical analyst. Compare the following requirement with the provided source code.
 
-## Exigence
+## Requirement
 ${requirement.id}: ${requirement.text}
 
-## Fichiers de code pertinents
+## Relevant Code Files
 
 ${filesContext}
 
-Analyse si cette exigence est implémentée dans le code. Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans bloc de code, sans commentaires) :
-{"status":"implemented","confidence":85,"matchedFiles":[{"filePath":"chemin/fichier.ts","line":42}],"explanation":"...","missingElements":["..."],"suggestedActions":["..."]}
+Analyze whether this requirement is implemented in the code. Respond ONLY with a valid JSON object (no markdown, no code block, no comments):
+{"status":"implemented","confidence":85,"matchedFiles":[{"filePath":"path/file.ts","line":42}],"explanation":"...","missingElements":["..."],"suggestedActions":["..."]}
 
-Les valeurs possibles pour status: "implemented", "partially-implemented", "not-implemented", "divergent"
-La confidence est un nombre entre 0 et 100.`;
+Possible values for status: "implemented", "partially-implemented", "not-implemented", "divergent"
+Confidence is a number between 0 and 100.`;
 
   try {
     const messages = [vscode.LanguageModelChatMessage.User(prompt)];
@@ -81,7 +81,7 @@ La confidence est un nombre entre 0 et 100.`;
     status: 'not-implemented',
     confidence: 0,
     matchedFiles: [],
-    explanation: 'Analyse non disponible (erreur LLM).',
+    explanation: 'Analysis unavailable (LLM error).',
     missingElements: [],
     suggestedActions: [],
     evolution: 'new',

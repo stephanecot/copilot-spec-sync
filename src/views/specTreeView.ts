@@ -66,7 +66,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<SpecTreeIte
         if (s.implemented > 0) {
           children.push({
             type: 'status-group',
-            label: `Implémentées (${s.implemented})`,
+            label: `Implemented (${s.implemented})`,
             status: 'implemented',
             description: '',
             children: comparison.details
@@ -77,7 +77,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<SpecTreeIte
         if (s.partial > 0) {
           children.push({
             type: 'status-group',
-            label: `Partielles (${s.partial})`,
+            label: `Partial (${s.partial})`,
             status: 'partially-implemented',
             description: '',
             children: comparison.details
@@ -88,7 +88,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<SpecTreeIte
         if (s.notImplemented > 0) {
           children.push({
             type: 'status-group',
-            label: `Manquantes (${s.notImplemented})`,
+            label: `Missing (${s.notImplemented})`,
             status: 'not-implemented',
             description: '',
             children: comparison.details
@@ -99,7 +99,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<SpecTreeIte
         if (s.divergent > 0) {
           children.push({
             type: 'status-group',
-            label: `Divergentes (${s.divergent})`,
+            label: `Divergent (${s.divergent})`,
             status: 'divergent',
             description: '',
             children: comparison.details
@@ -113,7 +113,7 @@ export class SpecTreeDataProvider implements vscode.TreeDataProvider<SpecTreeIte
         type: 'spec',
         label: `${spec.title} v${spec.version}`,
         specId: spec.id,
-        description: comparison ? `${pct}%` : 'Non analysée',
+        description: comparison ? `${pct}%` : 'Not analyzed',
         children,
       });
     }
