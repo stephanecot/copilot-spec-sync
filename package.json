@@ -56,6 +56,65 @@
         ]
       }
     ],
+    "languageModelTools": [
+      {
+        "name": "spec-sync_workspace_search",
+        "displayName": "Search Workspace Files",
+        "description": "Search for files in the workspace by filename pattern",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Filename pattern to search for (e.g., 'auth', 'service', '.ts')"
+            },
+            "maxResults": {
+              "type": "number",
+              "description": "Maximum number of results to return (default: 20)"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "spec-sync_code_search",
+        "displayName": "Search Code Content",
+        "description": "Search for code within file contents (grep-like text search)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Text or code pattern to search for in file contents"
+            },
+            "maxResults": {
+              "type": "number",
+              "description": "Maximum number of results to return (default: 30)"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "spec-sync_read_file",
+        "displayName": "Read File Content",
+        "description": "Read the complete content of a specific file in the workspace",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "Relative path to the file from workspace root (e.g., 'src/auth/login.ts')"
+            },
+            "maxChars": {
+              "type": "number",
+              "description": "Maximum characters to read (default: 15000)"
+            }
+          },
+          "required": ["filePath"]
+        }
+      }
+    ],
     "commands": [
       {
         "command": "specSync.uploadSpec",

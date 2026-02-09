@@ -7,6 +7,9 @@ import { StorageManager } from './spec-comparator/storageManager.js';
 import { AnalyzeProjectTool } from './tools/analyzeProjectTool.js';
 import { CompareRequirementTool } from './tools/compareRequirementTool.js';
 import { GenerateCodeTool } from './tools/generateCodeTool.js';
+import { WorkspaceSearchTool } from './tools/workspaceSearchTool.js';
+import { ReadFileTool } from './tools/readFileTool.js';
+import { CodeSearchTool } from './tools/codeSearchTool.js';
 import { getStoragePath } from './utils/fileUtils.js';
 import {
   interactiveUploadSpec,
@@ -33,6 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.lm.registerTool('spec-sync_analyze_project', new AnalyzeProjectTool()),
     vscode.lm.registerTool('spec-sync_compare_requirement', new CompareRequirementTool(storage)),
     vscode.lm.registerTool('spec-sync_generate_code', new GenerateCodeTool()),
+    // Core analysis tools - let LLM explore codebase dynamically
+    vscode.lm.registerTool('spec-sync_workspace_search', new WorkspaceSearchTool()),
+    vscode.lm.registerTool('spec-sync_read_file', new ReadFileTool()),
+    vscode.lm.registerTool('spec-sync_code_search', new CodeSearchTool()),
   );
 
   // Dashboard WebView (single unified sidebar panel)

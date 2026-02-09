@@ -36,10 +36,10 @@ export async function analyzeRequirement(
 
   // Build files context
   let filesContext = '';
-  for (const file of candidateFiles.slice(0, 5)) {
+  for (const file of candidateFiles.slice(0, 8)) {
     const ext = file.relativePath.split('.').pop() || 'text';
-    const truncatedContent = file.content.length > 8000
-      ? file.content.substring(0, 8000) + '\n// ... [truncated]'
+    const truncatedContent = file.content.length > 12000
+      ? file.content.substring(0, 12000) + '\n// ... [truncated]'
       : file.content;
     filesContext += `### ${file.relativePath}\n\`\`\`${ext}\n${truncatedContent}\n\`\`\`\n\n`;
   }
@@ -56,8 +56,13 @@ ${filesContext}
 Analyze whether this requirement is implemented in the code. Respond ONLY with a valid JSON object (no markdown, no code block, no comments):
 {"status":"implemented","confidence":85,"matchedFiles":[{"filePath":"path/file.ts","line":42}],"explanation":"...","missingElements":["..."],"suggestedActions":["..."]}
 
-Possible values for status: "implemented", "partially-implemented", "not-implemented", "divergent"
-Confidence is a number between 0 and 100.`;
+**Status values and confidence scoring rules:**
+- "not-implemented" → confidence 0-20 (nothing found or entirely missing)
+- "partially-implemented" → confidence 20-65 (some parts present, but significant gaps)
+- "divergent" → confidence 30-70 (implementation exists but differs significantly from spec)
+- "implemented" → confidence 65-100 (fully matches requirement)
+
+**CRITICAL**: Your confidence score MUST match your explanation. If you describe missing elements or gaps, use low confidence and appropriate status. If fully implemented, use high confidence.`;
 
   try {
     const messages = [vscode.LanguageModelChatMessage.User(prompt)];
@@ -149,10 +154,10 @@ export async function analyzeRequirementsBatch(
 
   // Collect unique code files across all requirements in this batch
   for (const entry of withCodeEntries) {
-    for (const file of entry.candidateFiles.slice(0, 3)) { // Max 3 files per requirement
+    for (const file of entry.candidateFiles.slice(0, 5)) { // Max 5 files per requirement
       if (!codeFileMap.has(file.relativePath) && totalCodeChars < MAX_BATCH_CODE_CHARS) {
-        const truncatedContent = file.content.length > 6000
-          ? file.content.substring(0, 6000) + '\n// ... [truncated]'
+        const truncatedContent = file.content.length > 8000
+          ? file.content.substring(0, 8000) + '\n// ... [truncated]'
           : file.content;
         codeFileMap.set(file.relativePath, truncatedContent);
         totalCodeChars += truncatedContent.length;
@@ -172,7 +177,7 @@ export async function analyzeRequirementsBatch(
   const reqIds: string[] = [];
   for (const entry of withCodeEntries) {
     reqSection += `- **${entry.requirement.id}**: ${entry.requirement.text}\n`;
-    reqSection += `  Candidate files: ${entry.candidateFiles.slice(0, 3).map(f => f.relativePath).join(', ')}\n`;
+    reqSection += `  Candidate files: ${entry.candidateFiles.slice(0, 5).map(f => f.relativePath).join(', ')}\n`;
     reqIds.push(entry.requirement.id);
   }
 
@@ -187,8 +192,14 @@ ${filesSection}
 Analyze ALL ${withCodeEntries.length} requirements above. Respond ONLY with a valid JSON array (no markdown, no code block, no comments). Each element must have this shape:
 {"requirementId":"REQ-001","status":"implemented","confidence":85,"matchedFiles":[{"filePath":"path/file.ts","line":42}],"explanation":"...","missingElements":["..."],"suggestedActions":["..."]}
 
-Possible values for status: "implemented", "partially-implemented", "not-implemented", "divergent"
-Confidence is a number between 0 and 100.
+**Status values and confidence scoring rules:**
+- "not-implemented" → confidence 0-20 (nothing found or entirely missing)
+- "partially-implemented" → confidence 20-65 (some parts present, but significant gaps)
+- "divergent" → confidence 30-70 (implementation exists but differs significantly from spec)
+- "implemented" → confidence 65-100 (fully matches requirement)
+
+**CRITICAL**: For each requirement, your confidence score MUST match your explanation. If you describe missing elements or gaps, use low confidence and appropriate status. If fully implemented, use high confidence.
+
 Return exactly ${withCodeEntries.length} results, one per requirement, in the same order as listed above.`;
 
   try {

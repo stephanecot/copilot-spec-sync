@@ -403,7 +403,15 @@ export class DashboardViewProvider implements vscode.WebviewViewProvider {
 
         items.push({
           specTitle: meta.title,
-          date: new Date(c.timestamp).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          date: new Date(c.timestamp).toLocaleString('en-US', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true 
+          }),
           rawTimestamp: c.timestamp,
           pct: avgConfidence,
           delta,

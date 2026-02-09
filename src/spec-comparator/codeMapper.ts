@@ -34,7 +34,7 @@ const SKIP_FILES = new Set([
 export async function findRelevantCode(
   requirement: Requirement,
   projects: ProjectInfo[],
-  maxCandidates: number = 5,
+  maxCandidates: number = 8,
 ): Promise<CandidateFile[]> {
   const keywords = extractKeywords(requirement.text);
 
@@ -42,7 +42,8 @@ export async function findRelevantCode(
   const scoredFiles: { fullPath: string; relativePath: string; score: number; reason: string; projectPath: string }[] = [];
 
   for (const project of projects) {
-    const fileTree = await getFileTree(project.path, 6);
+    console.log(`[Code Mapper] Scanning project: ${project.name} at ${project.path}`);
+    const fileTree = await getFileTree(project.path, 10);
 
     for (const relPath of fileTree) {
       // Normalize path separators for consistent matching
@@ -73,6 +74,8 @@ export async function findRelevantCode(
     }
   }
 
+  console.log(`[Code Mapper] For "${requirement.id}": found ${allSourceFiles.length} source files, ${scoredFiles.length} scored matches`);
+
   // Sort by score descending
   scoredFiles.sort((a, b) => b.score - a.score);
 
@@ -80,7 +83,10 @@ export async function findRelevantCode(
   // still gets code to analyze (instead of returning 0 candidates → auto not-implemented)
   let topFiles = scoredFiles.slice(0, maxCandidates);
 
+  console.log(`[Code Mapper] Top ${topFiles.length} candidates (max=${maxCandidates}):`, topFiles.map(f => f.relativePath));
+
   if (topFiles.length === 0 && allSourceFiles.length > 0) {
+    console.log(`[Code Mapper] No keyword matches, using fallback strategy`);
     // Prioritize common source extensions
     const SOURCE_EXT = new Set(['.ts', '.js', '.tsx', '.jsx', '.py', '.java', '.cs', '.go', '.rs', '.vue', '.svelte', '.rb', '.php', '.kt', '.swift']);
     const sourceOnly = allSourceFiles.filter(f => SOURCE_EXT.has(path.extname(f.relativePath).toLowerCase()));
