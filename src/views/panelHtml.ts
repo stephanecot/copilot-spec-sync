@@ -25,6 +25,7 @@ export interface SpecItem {
 export interface HistoryItem {
   specTitle: string;
   date: string;
+  rawTimestamp: string;
   pct: number;
   delta: string;
   gitHash: string;
@@ -726,12 +727,14 @@ export function getPanelHtml(nonce: string, _webview: vscode.Webview): string {
     items.forEach(h => {
       const deltaClass = h.delta.startsWith('+') ? 'delta-up' : h.delta.startsWith('-') ? 'delta-down' : 'delta-flat';
       const hInfo = getComplianceInfo(h.pct);
-      html += '<div class="history-item">';
+      html += '<div class="history-item" style="flex-wrap:wrap">';
+      html += '<span style="width:100%;font-size:11px;font-weight:600;margin-bottom:2px">' + esc(h.specTitle) + '</span>';
       html += '<span class="history-date">' + esc(h.date) + '</span>';
       html += '<span class="history-pct">' + h.pct + '%</span>';
       html += '<span class="compliance-level ' + hInfo.levelClass + '" style="font-size:10px;padding:1px 6px">' + hInfo.label + '</span>';
       html += '<span class="history-delta ' + deltaClass + '">' + esc(h.delta) + '</span>';
-      html += '<span class="history-hash">' + esc(h.gitHash) + '</span>';
+      if(h.gitHash && h.gitHash !== '-') html += '<span class="history-hash">' + esc(h.gitHash) + '</span>';
+      html += '<span style="font-size:10px;color:var(--vscode-descriptionForeground)">' + h.implemented + '/' + h.total + ' impl.</span>';
       html += '</div>';
     });
     container.innerHTML = html;

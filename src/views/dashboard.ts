@@ -385,20 +385,27 @@ export class DashboardViewProvider implements vscode.WebviewViewProvider {
       for (let i = 0; i < Math.min(comparisons.length, 20); i++) {
         const c = comparisons[i];
         const s = c.summary;
-        const pct = Math.round((s.implemented / s.total) * 100);
+
+        // Use average confidence for consistency with the Results tab
+        const avgConfidence = c.details && c.details.length > 0
+          ? Math.round(c.details.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) / c.details.length)
+          : (s.total > 0 ? Math.round((s.implemented / s.total) * 100) : 0);
 
         let delta = 'base';
         if (i < comparisons.length - 1) {
           const prev = comparisons[i + 1];
-          const prevPct = Math.round((prev.summary.implemented / prev.summary.total) * 100);
-          const diff = pct - prevPct;
+          const prevAvg = prev.details && prev.details.length > 0
+            ? Math.round(prev.details.reduce((sum: number, d: any) => sum + (d.confidence || 0), 0) / prev.details.length)
+            : (prev.summary.total > 0 ? Math.round((prev.summary.implemented / prev.summary.total) * 100) : 0);
+          const diff = avgConfidence - prevAvg;
           delta = diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '=';
         }
 
         items.push({
           specTitle: meta.title,
           date: new Date(c.timestamp).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-          pct,
+          rawTimestamp: c.timestamp,
+          pct: avgConfidence,
           delta,
           gitHash: c.gitCommitHash ? c.gitCommitHash.substring(0, 7) : '-',
           implemented: s.implemented,
@@ -407,8 +414,8 @@ export class DashboardViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Sort newest first
-    items.sort((a, b) => b.date.localeCompare(a.date));
+    // Sort newest first by raw ISO timestamp
+    items.sort((a, b) => b.rawTimestamp.localeCompare(a.rawTimestamp));
 
     this._view?.webview.postMessage({ type: 'updateHistory', history: items });
   }

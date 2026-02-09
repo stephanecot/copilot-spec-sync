@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { StorageManager } from '../spec-comparator/storageManager.js';
 import { findRelevantCode } from '../spec-comparator/codeMapper.js';
-import { analyzeRequirement, consolidateResults } from '../spec-comparator/gapAnalyzer.js';
+import { analyzeRequirementsBatch, getOptimalBatchSize, consolidateResults } from '../spec-comparator/gapAnalyzer.js';
 import { getGitCommitHash, generateId } from '../utils/fileUtils.js';
 import { ProjectInfo, Requirement, SpecSection } from '../types.js';
 
@@ -124,9 +124,18 @@ export class AnalysisManager {
     token: vscode.CancellationToken,
   ): Promise<void> {
     const job = this._jobs.get(jobId)!;
+    const batchSize = getOptimalBatchSize(requirements.length);
+    const totalBatches = Math.ceil(requirements.length / batchSize);
 
-    const results = [];
+    console.log(`[Spec Sync] Using batch size ${batchSize} → ${totalBatches} LLM calls (instead of ${requirements.length})`);
 
+    const results: any[] = [];
+
+    // Phase 1: Pre-compute all code candidates (local file scanning, no LLM)
+    job.currentStep = 'Scanning code files...';
+    this._onDidUpdateJob.fire(job);
+
+    const candidatesMap: Map<string, any[]> = new Map();
     for (let i = 0; i < requirements.length; i++) {
       if (token.isCancellationRequested) {
         job.status = 'cancelled';
@@ -135,22 +144,47 @@ export class AnalysisManager {
         this._onDidUpdateJob.fire(job);
         return;
       }
-
       const req = requirements[i];
-      job.currentStep = `${req.id}: ${req.text.substring(0, 60)}${req.text.length > 60 ? '...' : ''}`;
-      job.processedRequirements = i;
-      job.progress = Math.round((i / requirements.length) * 100);
-      this._onDidUpdateJob.fire(job);
-
       try {
         const candidates = await findRelevantCode(req, projects, 5);
-        console.log(`[Spec Sync] ${req.id}: Found ${candidates.length} candidate files`);
-        if (candidates.length > 0) {
-          console.log(`  - Top candidates:`, candidates.slice(0, 3).map(c => c.relativePath));
+        candidatesMap.set(req.id, candidates);
+      } catch {
+        candidatesMap.set(req.id, []);
+      }
+    }
+
+    // Phase 2: Analyze in batches (1 LLM call per batch)
+    for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+      if (token.isCancellationRequested) {
+        job.status = 'cancelled';
+        job.currentStep = 'Cancelled';
+        job.completedAt = new Date().toISOString();
+        this._onDidUpdateJob.fire(job);
+        return;
+      }
+
+      const start = batchIdx * batchSize;
+      const end = Math.min(start + batchSize, requirements.length);
+      const batchReqs = requirements.slice(start, end);
+
+      job.currentStep = `Batch ${batchIdx + 1}/${totalBatches}: ${batchReqs.map(r => r.id).join(', ')}`;
+      job.processedRequirements = start;
+      job.progress = Math.round((start / requirements.length) * 100);
+      this._onDidUpdateJob.fire(job);
+
+      const batch = batchReqs.map(req => ({
+        requirement: req,
+        candidateFiles: candidatesMap.get(req.id) || [],
+      }));
+
+      try {
+        const batchResults = await analyzeRequirementsBatch(batch, model, token);
+        results.push(...batchResults);
+
+        console.log(`[Spec Sync] Batch ${batchIdx + 1}/${totalBatches} complete — ${batchResults.length} requirements analyzed`);
+        for (const r of batchResults) {
+          console.log(`  - ${r.requirementId}: ${r.status} (confidence: ${r.confidence}%)`);
         }
-        const result = await analyzeRequirement(req, candidates, model, token);
-        console.log(`  - Result: ${result.status} (confidence: ${result.confidence}%)`);
-        results.push(result);
       } catch (err) {
         if (token.isCancellationRequested) {
           job.status = 'cancelled';
@@ -159,19 +193,21 @@ export class AnalysisManager {
           this._onDidUpdateJob.fire(job);
           return;
         }
-        // Log individual requirement error but continue
-        console.error(`[Spec Sync] Error analyzing ${req.id}:`, err);
-        results.push({
-          requirementId: req.id,
-          requirementText: req.text,
-          status: 'not-implemented' as const,
-          confidence: 0,
-          matchedFiles: [],
-          explanation: `Error during analysis: ${err}`,
-          missingElements: [],
-          suggestedActions: [],
-          evolution: 'new' as const,
-        });
+        // Log batch error but fill with defaults
+        console.error(`[Spec Sync] Batch ${batchIdx + 1} error:`, err);
+        for (const req of batchReqs) {
+          results.push({
+            requirementId: req.id,
+            requirementText: req.text,
+            status: 'not-implemented' as const,
+            confidence: 0,
+            matchedFiles: [],
+            explanation: `Error during batch analysis: ${err}`,
+            missingElements: [],
+            suggestedActions: [],
+            evolution: 'new' as const,
+          });
+        }
       }
     }
 
